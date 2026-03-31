@@ -1,0 +1,38 @@
+## Laravel
+*.log
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+/auth.json
+/bootstrap/cache/*.php
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+Homestead.json
+Homestead.yaml
+
+## Database
+/database/database.sqlite
+*.sqlite
+
+## Testing
+/.phpunit.cache
+
+## IDEs & editors
+.DS_Store
+Thumbs.db
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+/.phpactor.json
+.phpactor.json
+
+## Claude Code project data (not for VCS)
+/.claude
