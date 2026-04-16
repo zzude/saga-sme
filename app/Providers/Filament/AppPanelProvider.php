@@ -33,6 +33,7 @@ class AppPanelProvider extends PanelProvider
             // Manual resource registration — do not use discoverResources()
             ->resources([
                 \App\Filament\App\Resources\AccountResource::class,
+                \App\Filament\App\Resources\AccountingPeriodResource::class,
             ])
             ->pages([
                 Dashboard::class,

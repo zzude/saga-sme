@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+use App\Enums\ReportType;
+
 class Account extends Model
 {
     use HasCompanyScope;
@@ -22,6 +24,7 @@ class Account extends Model
         'level',
         'description',
         'is_active',
+        'report_type',
     ];
 
     protected function casts(): array
@@ -30,6 +33,7 @@ class Account extends Model
             'type'      => AccountType::class,
             'level'     => AccountLevel::class,
             'is_active' => 'boolean',
+            'report_type' => \App\Enums\ReportType::class,
         ];
     }
 
@@ -44,6 +48,11 @@ class Account extends Model
     {
         return $this->hasMany(Account::class, 'parent_id')->withoutGlobalScopes();
     }
+
+    public function journalLines(): HasMany
+    {
+        return $this->hasMany(JournalLine::class);
+    }        
 
     // ── Scopes ───────────────────────────────────────────────────────────────
 
