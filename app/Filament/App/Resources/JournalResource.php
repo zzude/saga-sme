@@ -17,8 +17,9 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
+use Filament\Actions\Action as TableAction;
 
 class JournalResource extends Resource
 {
@@ -192,6 +193,29 @@ class JournalResource extends Resource
                     ]),
             ])
             ->actions([
+                    TableAction::make('post')
+                    ->label('Post')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn (JournalHeader $record) => $record->isDraft())
+                    ->requiresConfirmation()
+                    ->modalHeading('Post Journal Entry')
+                    ->modalDescription('Journal yang di-post tidak boleh diedit. Pastikan semua entries betul.')
+                    ->action(function (JournalHeader $record) {
+                        try {
+                            app(JournalService::class)->post($record);
+                            \Filament\Notifications\Notification::make()
+                                ->title('Journal posted successfully!')
+                                ->success()
+                                ->send();
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                        
+                    }),
                 EditAction::make()
                     ->visible(fn (JournalHeader $record) => $record->isDraft()),
             ])
