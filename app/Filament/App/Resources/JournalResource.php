@@ -50,6 +50,7 @@ class JournalResource extends Resource
         return $schema->components([
             Section::make('Journal Details')
                 ->columns(2)
+                ->disabled(fn (?JournalHeader $record) => $record && !$record->isDraft())
                 ->components([
                     Select::make('period_id')
                         ->label('Accounting Period')
@@ -83,6 +84,7 @@ class JournalResource extends Resource
                 ]),
 
             Section::make('Journal Lines')
+                ->disabled(fn (?JournalHeader $record) => $record && !$record->isDraft())
                 ->components([
                     Repeater::make('lines')
                         ->relationship('lines')
@@ -216,6 +218,34 @@ class JournalResource extends Resource
                         }
                         
                     }),
+                    TableAction::make('void')
+                    ->label('Void')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->visible(fn (JournalHeader $record) => $record->isPosted())
+                    ->requiresConfirmation()
+                    ->modalHeading('Void Journal Entry')
+                    ->modalDescription('Ini akan create reversal entry automatik. Tidak boleh undo!')
+                    ->form([
+                        \Filament\Forms\Components\Textarea::make('void_reason')
+                            ->label('Sebab Void')
+                            ->required()
+                            ->rows(3),
+                    ])
+                    ->action(function (JournalHeader $record, array $data) {
+                        try {
+                            app(JournalService::class)->void($record, $data['void_reason']);
+                            \Filament\Notifications\Notification::make()
+                                ->title('Journal voided — reversal entry created!')
+                                ->success()
+                                ->send();
+                        } catch (\Exception $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Error: ' . $e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),                    
                 EditAction::make()
                     ->visible(fn (JournalHeader $record) => $record->isDraft()),
             ])
