@@ -38,6 +38,7 @@ class AppPanelProvider extends PanelProvider
             ])
             ->pages([
                 Dashboard::class,
+                \App\Filament\App\Pages\TrialBalancePage::class,
             ])
             ->widgets([
                 AccountWidget::class,
