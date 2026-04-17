@@ -34,7 +34,9 @@ class AppPanelProvider extends PanelProvider
             ->resources([
                 \App\Filament\App\Resources\AccountResource::class,
                 \App\Filament\App\Resources\AccountingPeriodResource::class,
-                \App\Filament\App\Resources\JournalResource::class, 
+                \App\Filament\App\Resources\JournalResource::class,
+                \App\Filament\Resources\Customers\CustomerResource::class,
+                \App\Filament\Resources\Invoices\InvoiceResource::class,
             ])
             ->pages([
                 Dashboard::class,
