@@ -20,6 +20,7 @@ use Filament\Tables\Table;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\Action as TableAction;
+use Illuminate\Support\Facades\Auth;
 
 class JournalResource extends Resource
 {
@@ -195,11 +196,14 @@ class JournalResource extends Resource
                     ]),
             ])
             ->actions([
-                    TableAction::make('post')
+                TableAction::make('post')
                     ->label('Post')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn (JournalHeader $record) => $record->isDraft())
+                    ->visible(fn (JournalHeader $record) => 
+                        $record->isDraft() && 
+                        Auth::user()?->hasAnyRole(['super_admin', 'admin', 'approver'])
+                    )
                     ->requiresConfirmation()
                     ->modalHeading('Post Journal Entry')
                     ->modalDescription('Journal yang di-post tidak boleh diedit. Pastikan semua entries betul.')
@@ -216,13 +220,16 @@ class JournalResource extends Resource
                                 ->danger()
                                 ->send();
                         }
-                        
                     }),
-                    TableAction::make('void')
+
+                TableAction::make('void')
                     ->label('Void')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(fn (JournalHeader $record) => $record->isPosted())
+                    ->visible(fn (JournalHeader $record) => 
+                        $record->isPosted() && 
+                        Auth::user()?->hasAnyRole(['super_admin', 'admin'])
+                    )
                     ->requiresConfirmation()
                     ->modalHeading('Void Journal Entry')
                     ->modalDescription('Ini akan create reversal entry automatik. Tidak boleh undo!')
@@ -247,7 +254,8 @@ class JournalResource extends Resource
                         }
                     }),                    
                 EditAction::make()
-                    ->visible(fn (JournalHeader $record) => $record->isDraft()),
+                    ->visible(fn (JournalHeader $record) => $record->isDraft() && 
+                    Auth::user()?->hasAnyRole(['super_admin', 'admin', 'user'])),
             ])
             ->defaultSort('date', 'desc');
     }
