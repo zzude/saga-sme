@@ -25,11 +25,23 @@ class InvoiceForm
                 Section::make('Invoice Details')
                     ->columns(2)
                     ->schema([
-                        TextInput::make('invoice_no')
-                            ->label('Invoice No')
-                            ->required()
-                            ->placeholder('INV-2026-0001')
-                            ->maxLength(30),
+                    TextInput::make('invoice_no')
+                        ->label('Invoice No')
+                        ->required()
+                        ->placeholder('INV-2026-0001')
+                        ->default(function () {
+                            $companyId = Auth::user()->company_id;
+                            $year = now()->format('Y');
+                            $latest = \App\Models\Invoice::where('company_id', $companyId)
+                                ->whereYear('created_at', $year)
+                                ->orderByDesc('id')
+                                ->first();
+                            $nextNo = $latest
+                                ? (int) substr($latest->invoice_no, -4) + 1
+                                : 1;
+                            return 'INV-' . $year . '-' . str_pad($nextNo, 4, '0', STR_PAD_LEFT);
+                        })
+                        ->maxLength(30),
 
                         Select::make('status')
                             ->options([
