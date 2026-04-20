@@ -15,56 +15,50 @@ class InvoicesTable
     {
         return $table
             ->columns([
-                TextColumn::make('company.name')
-                    ->searchable(),
-                TextColumn::make('customer.name')
-                    ->searchable(),
-                TextColumn::make('period.name')
-                    ->searchable(),
                 TextColumn::make('invoice_no')
+                    ->label('Invoice No')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('customer.name')
+                    ->label('Customer')
                     ->searchable(),
                 TextColumn::make('date')
+                    ->label('Date')
                     ->date()
                     ->sortable(),
                 TextColumn::make('due_date')
+                    ->label('Due Date')
                     ->date()
                     ->sortable(),
                 TextColumn::make('status')
-                    ->badge(),
-                TextColumn::make('currency_code')
-                    ->searchable(),
-                TextColumn::make('exchange_rate')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('subtotal')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('tax_amount')
-                    ->numeric()
-                    ->sortable(),
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'draft'   => 'gray',
+                        'sent'    => 'info',
+                        'partial' => 'warning',
+                        'paid'    => 'success',
+                        'overdue' => 'danger',
+                        'void'    => 'danger',
+                        default   => 'gray',
+                    }),
                 TextColumn::make('total')
-                    ->numeric()
+                    ->label('Total (MYR)')
+                    ->numeric(decimalPlaces: 2)
                     ->sortable(),
                 TextColumn::make('paid_amount')
-                    ->numeric()
+                    ->label('Paid (MYR)')
+                    ->numeric(decimalPlaces: 2)
                     ->sortable(),
                 TextColumn::make('balance_due')
-                    ->numeric()
+                    ->label('Balance (MYR)')
+                    ->numeric(decimalPlaces: 2)
                     ->sortable(),
                 TextColumn::make('posted_at')
-                    ->dateTime()
-                    ->sortable(),
-                TextColumn::make('created_by')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('updated_by')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('created_at')
+                    ->label('Posted At')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -80,6 +74,7 @@ class InvoicesTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('date', 'desc');
     }
 }

@@ -17,43 +17,54 @@ class InvoiceInfolist
                     ->label('Customer'),
                 TextEntry::make('period.name')
                     ->label('Period'),
-                TextEntry::make('invoice_no'),
+                TextEntry::make('invoice_no')
+                    ->label('Invoice No'),
                 TextEntry::make('date')
+                    ->label('Date')
                     ->date(),
                 TextEntry::make('due_date')
+                    ->label('Due Date')
                     ->date(),
                 TextEntry::make('status')
-                    ->badge(),
-                TextEntry::make('currency_code'),
-                TextEntry::make('exchange_rate')
-                    ->numeric(),
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'draft'   => 'gray',
+                        'sent'    => 'info',
+                        'partial' => 'warning',
+                        'paid'    => 'success',
+                        'overdue' => 'danger',
+                        'void'    => 'danger',
+                        default   => 'gray',
+                    }),
+                TextEntry::make('currency_code')
+                    ->label('Currency'),
                 TextEntry::make('subtotal')
-                    ->numeric(),
+                    ->label('Subtotal (MYR)')
+                    ->numeric(decimalPlaces: 2),
                 TextEntry::make('tax_amount')
-                    ->numeric(),
+                    ->label('Tax Amount (MYR)')
+                    ->numeric(decimalPlaces: 2),
                 TextEntry::make('total')
-                    ->numeric(),
+                    ->label('Total (MYR)')
+                    ->numeric(decimalPlaces: 2),
                 TextEntry::make('paid_amount')
-                    ->numeric(),
+                    ->label('Paid Amount (MYR)')
+                    ->numeric(decimalPlaces: 2),
                 TextEntry::make('balance_due')
-                    ->numeric(),
+                    ->label('Balance Due (MYR)')
+                    ->numeric(decimalPlaces: 2),
                 TextEntry::make('notes')
                     ->placeholder('-')
                     ->columnSpanFull(),
                 TextEntry::make('posted_at')
+                    ->label('Posted At')
                     ->dateTime()
                     ->placeholder('-'),
-                TextEntry::make('created_by')
-                    ->numeric(),
-                TextEntry::make('updated_by')
-                    ->numeric()
-                    ->placeholder('-'),
+                TextEntry::make('createdBy.name')
+                    ->label('Created By'),
                 TextEntry::make('created_at')
-                    ->dateTime()
-                    ->placeholder('-'),
-                TextEntry::make('updated_at')
-                    ->dateTime()
-                    ->placeholder('-'),
+                    ->label('Created At')
+                    ->dateTime(),
             ]);
     }
 }
