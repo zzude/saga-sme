@@ -99,65 +99,70 @@ class InvoiceForm
 
                 Section::make('Invoice Lines')
                     ->schema([
-                        Repeater::make('lines')
-                            ->relationship('lines')
-                            ->schema([
-                                TextInput::make('description')
-                                    ->label('Description')
-                                    ->required()
-                                    ->columnSpan(3),
+                    Repeater::make('lines')
+                        ->relationship('lines')
+                        ->schema([
+                            TextInput::make('description')
+                                ->label('Description')
+                                ->required()
+                                ->columnSpanFull(),
 
-                                Select::make('account_id')
-                                    ->label('Revenue Account')
-                                    ->options(fn () => Account::where('company_id', Auth::user()->company_id)
-                                        ->where('level', 3)
-                                        ->where('type', 'revenue')
-                                        ->pluck('name', 'id'))
-                                    ->required()
-                                    ->columnSpan(2),
+                            Select::make('account_id')
+                                ->label('Revenue Account')
+                                ->options(fn () => Account::where('company_id', Auth::user()->company_id)
+                                    ->where('level', 3)
+                                    ->where('type', 'revenue')
+                                    ->pluck('name', 'id'))
+                                ->required()
+                                ->columnSpan(3),
 
-                                TextInput::make('quantity')
-                                    ->label('Qty')
-                                    ->numeric()
-                                    ->default(1)
-                                    ->live()
-                                    ->afterStateUpdated(fn ($state, Set $set, $get) =>
-                                        self::recalculateLine($set, $get))
-                                    ->columnSpan(1),
+                            TextInput::make('quantity')
+                                ->label('Qty')
+                                ->extraInputAttributes(['style' => 'text-align: right;'])
+                                ->numeric()
+                                ->default(1)
+                                ->live()
+                                ->afterStateUpdated(fn ($state, Set $set, $get) =>
+                                    self::recalculateLine($set, $get))
+                                ->columnSpan(1),
 
-                                TextInput::make('unit_price')
-                                    ->label('Unit Price')
-                                    ->numeric()
-                                    ->default(0)
-                                    ->live()
-                                    ->afterStateUpdated(fn ($state, Set $set, $get) =>
-                                        self::recalculateLine($set, $get))
-                                    ->columnSpan(2),
+                            TextInput::make('unit_price')
+                                ->label('Unit Price (MYR)')
+                                ->extraInputAttributes(['style' => 'text-align: right;'])
+                                ->numeric()
+                                ->default(0)
+                                ->live()
+                                ->afterStateUpdated(fn ($state, Set $set, $get) =>
+                                    self::recalculateLine($set, $get))
+                                ->columnSpan(2),
 
-                                TextInput::make('tax_amount')
-                                    ->label('Tax (MYR)')
-                                    ->numeric()
-                                    ->default(0)
-                                    ->live()
-                                    ->afterStateUpdated(fn ($state, Set $set, $get) =>
-                                        self::recalculateLine($set, $get))
-                                    ->columnSpan(1),
+                            TextInput::make('tax_amount')
+                                ->label('Tax (MYR)')
+                                ->extraInputAttributes(['style' => 'text-align: right;'])
+                                ->numeric()
+                                ->default(0)
+                                ->live()
+                                ->afterStateUpdated(fn ($state, Set $set, $get) =>
+                                    self::recalculateLine($set, $get))
+                                ->columnSpan(2),
 
-                                TextInput::make('amount')
-                                    ->label('Amount')
-                                    ->numeric()
-                                    ->readOnly()
-                                    ->columnSpan(2),
+                            TextInput::make('amount')
+                                ->label('Amount (MYR)')
+                                ->extraInputAttributes(['style' => 'text-align: right;'])
+                                ->numeric()
+                                ->readOnly()
+                                ->columnSpan(2),
 
-                                TextInput::make('line_total')
-                                    ->label('Line Total')
-                                    ->numeric()
-                                    ->readOnly()
-                                    ->columnSpan(1),
-                            ])
-                            ->columns(12)
-                            ->addActionLabel('+ Add Line')
-                            ->reorderable('sort_order'),
+                            TextInput::make('line_total')
+                                ->label('Line Total (MYR)')
+                                ->extraInputAttributes(['style' => 'text-align: right;'])
+                                ->numeric()
+                                ->readOnly()
+                                ->columnSpan(2),
+                        ])
+                        ->columns(6)
+                        ->addActionLabel('+ Add Line')
+                        ->reorderable('sort_order'),
                     ]),
 
                 Section::make('Totals')
@@ -165,18 +170,21 @@ class InvoiceForm
                     ->schema([
                         TextInput::make('subtotal')
                             ->label('Subtotal (MYR)')
+                            ->extraInputAttributes(['style' => 'text-align: right;'])
                             ->numeric()
                             ->default(0)
                             ->readOnly(),
 
                         TextInput::make('tax_amount')
                             ->label('Tax Amount (MYR)')
+                            ->extraInputAttributes(['style' => 'text-align: right;'])
                             ->numeric()
                             ->default(0)
                             ->readOnly(),
 
                         TextInput::make('total')
                             ->label('Total (MYR)')
+                            ->extraInputAttributes(['style' => 'text-align: right;'])
                             ->numeric()
                             ->default(0)
                             ->readOnly(),
