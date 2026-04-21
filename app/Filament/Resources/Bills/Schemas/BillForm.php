@@ -164,7 +164,25 @@ class BillForm
                             ])
                             ->columns(6)
                             ->addActionLabel('+ Add Line')
-                            ->reorderable('sort_order'),
+                            ->reorderable('sort_order')
+                            ->live()
+                            ->afterStateUpdated(function ($state, Set $set) {
+                                $subtotal = 0;
+                                $tax      = 0;
+
+                                foreach ($state as $line) {
+                                    $qty      = (float) ($line['quantity'] ?? 0);
+                                    $price    = (float) ($line['unit_price'] ?? 0);
+                                    $taxAmt   = (float) ($line['tax_amount'] ?? 0);
+                                    $amount   = $qty * $price;
+                                    $subtotal += $amount;
+                                    $tax      += $taxAmt;
+                                }
+
+                                $set('subtotal', number_format($subtotal, 2, '.', ''));
+                                $set('tax_amount', number_format($tax, 2, '.', ''));
+                                $set('total', number_format($subtotal + $tax, 2, '.', ''));
+                            }),
                     ]),
 
                 Section::make('Totals')
