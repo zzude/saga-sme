@@ -101,6 +101,13 @@ class ViewBill extends ViewRecord
                         Notification::make()->title('Error: ' . $e->getMessage())->danger()->send();
                     }
                 }),
+                
+            Action::make('printPdf')
+                ->label('Print PDF')
+                ->icon('heroicon-o-printer')
+                ->color('info')
+                ->url(fn () => route('bill.pdf', $this->record->id))
+                ->openUrlInNewTab(),                
 
             EditAction::make(),
         ];
