@@ -49,6 +49,10 @@ class AppPanelProvider extends PanelProvider
             ])
             ->widgets([
                 AccountWidget::class,
+                \App\Filament\App\Widgets\RevenueWidget::class,
+                \App\Filament\App\Widgets\ExpenseWidget::class,
+                \App\Filament\App\Widgets\NetProfitWidget::class,
+                \App\Filament\App\Widgets\ArOutstandingWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
