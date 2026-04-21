@@ -77,9 +77,7 @@ class CompanyTaxProfileResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => \App\Filament\App\Resources\CompanyTaxProfileResource\Pages\ListCompanyTaxProfiles::route('/'),
-            'create' => \App\Filament\App\Resources\CompanyTaxProfileResource\Pages\CreateCompanyTaxProfile::route('/create'),
-            'edit'   => \App\Filament\App\Resources\CompanyTaxProfileResource\Pages\EditCompanyTaxProfile::route('/{record}/edit'),
+            'index' => \App\Filament\App\Resources\CompanyTaxProfileResource\Pages\ManageCompanyTaxProfile::route('/'),
         ];
     }
 }
