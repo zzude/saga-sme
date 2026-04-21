@@ -37,6 +37,8 @@ class AppPanelProvider extends PanelProvider
                 \App\Filament\App\Resources\JournalResource::class,
                 \App\Filament\Resources\Customers\CustomerResource::class,
                 \App\Filament\Resources\Invoices\InvoiceResource::class,
+                \App\Filament\Resources\Vendors\VendorResource::class,    // tambah
+                \App\Filament\Resources\Bills\BillResource::class,        // tambah                
             ])
             ->pages([
                 Dashboard::class,
