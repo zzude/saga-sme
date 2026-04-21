@@ -48,6 +48,8 @@ class AppPanelProvider extends PanelProvider
                     \App\Filament\App\Pages\TrialBalancePage::class,
                     \App\Filament\App\Pages\ProfitLossPage::class,
                     \App\Filament\App\Pages\BalanceSheetPage::class,
+                    \App\Filament\App\Pages\ImportCoaPage::class,
+                    \App\Filament\App\Pages\ImportJournalPage::class,                    
             ])
             ->widgets([
                 AccountWidget::class,
