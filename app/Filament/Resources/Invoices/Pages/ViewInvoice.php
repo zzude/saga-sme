@@ -148,6 +148,12 @@ class ViewInvoice extends ViewRecord
                             ->send();
                     }
                 }),
+            Action::make('printPdf')
+                ->label('Print PDF')
+                ->icon('heroicon-o-printer')
+                ->color('info')
+                ->url(fn () => route('invoice.pdf', $this->record->id))
+                ->openUrlInNewTab(),                
 
             EditAction::make(),
         ];
