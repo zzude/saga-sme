@@ -40,6 +40,8 @@ class AppPanelProvider extends PanelProvider
                 \App\Filament\Resources\Vendors\VendorResource::class,
                 \App\Filament\Resources\Bills\BillResource::class,
                 \App\Filament\Resources\BankReconciliations\BankReconciliationResource::class,
+                \App\Filament\App\Resources\TaxCodeResource::class,
+                \App\Filament\App\Resources\CompanyTaxProfileResource::class,
                 ])
             ->pages([
                 Dashboard::class,
