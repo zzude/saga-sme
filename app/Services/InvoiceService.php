@@ -18,6 +18,15 @@ class InvoiceService
             throw new \Exception('Only draft or sent invoices can be posted.');
         }
 
+        // Check if already posted — SEBELUM transaction
+        $existing = JournalHeader::where('company_id', $invoice->company_id)
+            ->where('reference_no', $invoice->invoice_no)
+            ->first();
+
+        if ($existing) {
+            throw new \Exception('Invoice already posted to GL.');
+        }        
+
         // Find AR account (1300)
         $arAccount = Account::where('company_id', $invoice->company_id)
             ->where('type', 'asset')

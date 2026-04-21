@@ -20,7 +20,7 @@ class ViewInvoice extends ViewRecord
                 ->label('Post to GL')
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
-                ->visible(fn () => in_array($this->record->status, ['draft', 'sent']))
+                ->visible(fn () => in_array($this->record->status, ['draft']))
                 ->requiresConfirmation()
                 ->modalHeading('Post Invoice to General Ledger')
                 ->modalDescription('This will create a journal entry for this invoice. Continue?')
