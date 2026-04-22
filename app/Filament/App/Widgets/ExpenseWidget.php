@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\DB;
 
 class ExpenseWidget extends BaseWidget
 {
+    public static function canView(): bool {
+        return auth()->user()?->hasAnyRole(["super_admin", "admin", "treasurer"]) ?? false;
+    }
+
     protected static ?int $sort = 2;
 
     protected function getStats(): array

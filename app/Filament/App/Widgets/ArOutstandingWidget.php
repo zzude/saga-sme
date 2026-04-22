@@ -9,6 +9,10 @@ use App\Models\Invoice;
 
 class ArOutstandingWidget extends BaseWidget
 {
+    public static function canView(): bool {
+        return auth()->user()?->hasAnyRole(["super_admin", "admin", "treasurer"]) ?? false;
+    }
+
     protected static ?int $sort = 4;
 
     protected function getStats(): array
