@@ -7,18 +7,6 @@
     <x-filament::button wire:click="previewImport" color="warning" icon="heroicon-o-eye">
         Preview Import
     </x-filament::button>
-
-    @if(!empty($preview) && $preview['can_import'])
-    <x-filament::button wire:click="commitImport" color="success" icon="heroicon-o-check-circle">
-        Confirm Import ({{ $preview['ok_count'] }} accounts)
-    </x-filament::button>
-    @endif
-
-    @if(!empty($preview['errors']))
-    <x-filament::button wire:click="downloadErrors" color="danger" icon="heroicon-o-arrow-down-tray">
-        Download Errors CSV
-    </x-filament::button>
-    @endif
 </div>
 
 {{-- PREVIEW TABLE --}}

@@ -128,7 +128,6 @@ class CsvImportService
         DB::transaction(function () use ($previewRows, $companyId, &$imported, &$obEntries) {
             foreach ($previewRows as $row) {
                 if ($row['status'] !== 'ok') continue;
-
                 $account = Account::create([
                     'company_id'  => $companyId,
                     'code'        => $row['code'],

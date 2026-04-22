@@ -38,6 +38,23 @@ class ImportCoaPage extends Page implements HasForms
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('gray')
                 ->action(fn () => $this->downloadTemplate()),
+
+            Action::make('commitImport')
+                ->label('Confirm Import')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->visible(fn () => !empty($this->preview) && $this->preview['can_import'])
+                ->requiresConfirmation()
+                ->modalHeading('Confirm Import')
+                ->modalDescription(fn () => 'Import ' . ($this->preview['ok_count'] ?? 0) . ' accounts into Chart of Accounts?')
+                ->action(fn () => $this->commitImport()),
+
+            Action::make('downloadErrors')
+                ->label('Download Errors CSV')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('danger')
+                ->visible(fn () => !empty($this->preview['errors']) && ($this->preview['err_count'] ?? 0) > 0)
+                ->action(fn () => $this->downloadErrors()),                
         ];
     }
 
