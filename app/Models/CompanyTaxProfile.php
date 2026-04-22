@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivityTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CompanyTaxProfile extends Model
 {
+    use LogsActivityTrait;
+
     protected $fillable = [
         'company_id',
         'tax_reg_no',

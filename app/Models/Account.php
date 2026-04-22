@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\AccountLevel;
 use App\Enums\AccountType;
 use App\Traits\HasCompanyScope;
+use App\Traits\LogsActivityTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,7 +14,7 @@ use App\Enums\ReportType;
 
 class Account extends Model
 {
-    use HasCompanyScope;
+    use HasCompanyScope, LogsActivityTrait;
 
     protected $fillable = [
         'company_id',

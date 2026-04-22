@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivityTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\AccountingPeriod;
@@ -10,6 +11,8 @@ use App\Models\Account;
 
 class Company extends Model
 {
+    use LogsActivityTrait;
+
     protected $fillable = [
         'name',
         'registration_number',

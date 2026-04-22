@@ -39,6 +39,7 @@ class AdminPanelProvider extends PanelProvider
                 // \App\Filament\Admin\Resources\CompanyResource::class,
             ])
             ->pages([
+                \App\Filament\Pages\ActivityLog::class,
                 Dashboard::class,
             ])
             ->widgets([

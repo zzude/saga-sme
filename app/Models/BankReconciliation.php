@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Traits\HasCompanyScope;
+use App\Traits\LogsActivityTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BankReconciliation extends Model
 {
-    use HasCompanyScope;
+    use HasCompanyScope, LogsActivityTrait;
 
     protected $fillable = [
         'company_id',
