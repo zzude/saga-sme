@@ -4,6 +4,9 @@ namespace App\Filament\Resources\Invoices\Pages;
 
 use App\Filament\Resources\Invoices\InvoiceResource;
 use App\Services\InvoiceService;
+use App\Jobs\SubmitInvoiceJob;
+use App\Models\MyInvoisProfile;
+use App\Models\MyInvoisSubmission;
 use Filament\Actions\EditAction;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -155,7 +158,49 @@ class ViewInvoice extends ViewRecord
                 ->url(fn () => route('invoice.pdf', $this->record->id))
                 ->openUrlInNewTab(),                
 
+            Action::make("submitMyInvois")
+                ->label(fn() => $this->getMyInvoisStatus())
+                ->icon("heroicon-o-cloud-arrow-up")
+                ->color("warning")
+                ->visible(fn() => in_array($this->record->status, ["sent", "partial", "paid"]))
+                ->requiresConfirmation()
+                ->modalHeading("Submit to MyInvois (LHDN)")
+                ->modalDescription("Invoice will be submitted to LHDN MyInvois for e-Invoice validation.")
+                ->action(function() {
+                    $profile = MyInvoisProfile::where("company_id", $this->record->company_id)
+                        ->where("is_active", true)
+                        ->first();
+                    if (!$profile) {
+                        Notification::make()
+                            ->title("MyInvois profile not configured!")
+                            ->body("Please setup MyInvois credentials in Admin panel.")
+                            ->danger()
+                            ->send();
+                        return;
+                    }
+                    SubmitInvoiceJob::dispatch($this->record, $profile);
+                    Notification::make()
+                        ->title("Submitted to MyInvois!")
+                        ->body("Invoice queued for submission. Status will update automatically.")
+                        ->success()
+                        ->send();
+                }),
+
             EditAction::make(),
         ];
+    }
+
+    private function getMyInvoisStatus(): string
+    {
+        $submission = MyInvoisSubmission::where("invoice_id", $this->record->id)->latest()->first();
+        if (!$submission) return "Submit to MyInvois";
+        return match($submission->status) {
+            "submitted"  => "MyInvois: Submitted",
+            "processing" => "MyInvois: Processing...",
+            "validated"  => "MyInvois: Validated",
+            "rejected"   => "MyInvois: Rejected",
+            "cancelled"  => "MyInvois: Cancelled",
+            default      => "Submit to MyInvois",
+        };
     }
 }
