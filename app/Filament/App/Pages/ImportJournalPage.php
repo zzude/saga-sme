@@ -136,7 +136,7 @@ class ImportJournalPage extends Page implements HasForms
         $csv .= "JV-001,2026-04-01,Opening Entry,1110,10000,0,Cash brought in\n";
         $csv .= "JV-001,2026-04-01,Opening Entry,3100,0,10000,Capital contribution\n";
         $csv .= "JV-002,2026-04-02,Office Rent,5200,1500,0,April rent\n";
-        $csv .= "JV-002,2026-04-02,Office Rent,1110,0,1500,Cash paid\n";
+        $csv .= "JV-002,2026-04-02,Office Rent,1110,0,1500,Cash paid\n";        
 
         return response()->streamDownload(
             fn () => print($csv),
