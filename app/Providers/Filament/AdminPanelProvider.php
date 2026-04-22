@@ -37,6 +37,7 @@ class AdminPanelProvider extends PanelProvider
                 // Register admin resources here as the project grows:
                 // \App\Filament\Admin\Resources\UserResource::class,
                 // \App\Filament\Admin\Resources\CompanyResource::class,
+                \App\Filament\Resources\MyInvoisProfiles\MyInvoisProfileResource::class,
             ])
             ->pages([
                 \App\Filament\Pages\ActivityLog::class,
