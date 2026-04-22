@@ -48,6 +48,26 @@ class ActivityLog extends Page implements HasTable
                     ->label("ID"),
                 TextColumn::make("description")
                     ->label("Description"),
+                TextColumn::make("changes_display")
+                    ->label("Changes")
+                    ->getStateUsing(function($record) {
+                        if (empty($record->attribute_changes)) return "-";
+                        $data = $record->attribute_changes instanceof \Illuminate\Support\Collection
+                            ? $record->attribute_changes->toArray()
+                            : json_decode($record->attribute_changes, true);
+                        $old = $data["old"] ?? [];
+                        $new = $data["attributes"] ?? [];
+                        if (empty($new)) return "-";
+                        $changes = [];
+                        foreach ($new as $key => $val) {
+                            $oldVal = $old[$key] ?? "-";
+                            if ((string)$oldVal !== (string)$val) {
+                                $changes[] = "{$key}: {$oldVal} → {$val}";
+                            }
+                        }
+                        return empty($changes) ? "(no changes)" : implode(", ", $changes);
+                    })
+                    ->wrap(),
             ])
             ->filters([
                 SelectFilter::make("event")
