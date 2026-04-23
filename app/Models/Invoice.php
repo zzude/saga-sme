@@ -31,6 +31,14 @@ class Invoice extends Model
         'posted_at',
         'created_by',
         'updated_by',
+        // e-Invoice
+        'einvoice_status',
+        'einvoice_uuid',
+        'einvoice_submission_uid',
+        'einvoice_long_id',
+        'einvoice_errors',
+        'einvoice_submitted_at',
+        'einvoice_validated_at',
     ];
 
     protected function casts(): array

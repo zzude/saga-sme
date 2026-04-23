@@ -9,6 +9,7 @@ use App\Models\JournalLine;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\InvoicePayment;
+use App\Jobs\SubmitInvoiceJob;
 
 class InvoiceService
 {
@@ -80,6 +81,9 @@ class InvoiceService
                 'posted_at' => now(),
             ]);
         });
+        // Dispatch e-Invoice submission (outside transaction — safe)
+        SubmitInvoiceJob::dispatch($invoice)
+            ->onQueue('default');        
     }
 
     public function void(Invoice $invoice, string $reason): void
