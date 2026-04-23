@@ -36,3 +36,11 @@ Thumbs.db
 
 ## Claude Code project data (not for VCS)
 /.claude
+
+# Tinker junk
+einvoice_*
+valid,
+null,
+id,
+invoice-
+TEST-*
