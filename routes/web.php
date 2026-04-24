@@ -1,45 +1,51 @@
 <?php
 
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\OnboardingController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
+// ─── Public ───────────────────────────────────────────────────
+Route::middleware('guest')->group(function () {
+    Route::get('/register', [RegisterController::class, 'show'])
+        ->name('register');
+    Route::post('/register', [RegisterController::class, 'store']);
+
+    Route::get('/login', [LoginController::class, 'show'])
+        ->name('login');
+    Route::post('/login', [LoginController::class, 'authenticate']);
 });
 
-Route::get('/invoice/{invoice}/pdf', function (\App\Models\Invoice $invoice) {
-    $invoice->load(['customer', 'lines', 'period']);
-    $company = \App\Models\Company::find($invoice->company_id);
+Route::post('/logout', [LoginController::class, 'logout'])
+    ->middleware('auth')
+    ->name('logout');
 
-    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.invoice-pdf', [
-        'invoice' => $invoice,
-        'company' => $company,
-    ])->setPaper('a4', 'portrait')
-      ->set_option('margin_top', '0')
-      ->set_option('margin_bottom', '0')
-      ->set_option('margin_left', '0')
-      ->set_option('margin_right', '0');
+// ─── Email Verification ───────────────────────────────────────
+Route::middleware('auth')->group(function () {
+    Route::get('/email/verify', [EmailVerificationController::class, 'notice'])
+        ->name('verification.notice');
 
-    return response()->streamDownload(
-        fn () => print($pdf->output()),
-        $invoice->invoice_no . '.pdf'
-    );
-})->name('invoice.pdf')->middleware('auth');
+    Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+        ->middleware(['signed', 'throttle:6,1'])
+        ->name('verification.verify');
 
-Route::get('/bill/{bill}/pdf', function (\App\Models\Bill $bill) {
-    $bill->load(['vendor', 'lines', 'period']);
-    $company = \App\Models\Company::find($bill->company_id);
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
+});
 
-    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.bill-pdf', [
-        'bill'    => $bill,
-        'company' => $company,
-    ])->setPaper('a4', 'portrait')
-      ->set_option('margin_top', '0')
-      ->set_option('margin_bottom', '0')
-      ->set_option('margin_left', '0')
-      ->set_option('margin_right', '0');
+// ─── Onboarding ───────────────────────────────────────────────
+// Auth + verified + onboarding belum complete
+Route::middleware(['auth', 'verified', 'company.active'])
+    ->prefix('onboarding')
+    ->name('onboarding.')
+    ->group(function () {
+        Route::get('/step/{step}', [OnboardingController::class, 'show'])
+            ->name('step');
+        Route::post('/step/{step}', [OnboardingController::class, 'update']);
+    });
 
-    return response()->streamDownload(
-        fn () => print($pdf->output()),
-        $bill->bill_no . '.pdf'
-    );
-})->name('bill.pdf')->middleware('auth');
+// ─── App (Filament handle sendiri) ───────────────────────────
+// Middleware stack inject ke Filament panel dalam AppPanelProvider
+// Lihat Step 5 nanti

@@ -2,17 +2,14 @@
 
 namespace App\Models;
 
-use App\Traits\LogsActivityTrait;
+use App\Enums\CompanyStatus;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\AccountingPeriod;
-use App\Models\JournalHeader;
-use App\Models\Account;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Company extends Model
 {
-    use LogsActivityTrait;
-
     protected $fillable = [
         'name',
         'registration_number',
@@ -30,14 +27,24 @@ class Company extends Model
         'financial_year_start',
         'logo_path',
         'is_active',
+        'owner_id',
+        'status',
+        'onboarding_step',
+        'onboarding_completed_at',
     ];
 
-    protected function casts(): array
+    protected $casts = [
+        'status'                  => CompanyStatus::class,
+        'onboarding_completed_at' => 'datetime',
+        'financial_year_start'    => 'date',
+        'is_active'               => 'boolean',
+    ];
+
+    // ─── Relationships ────────────────────────────────────────
+
+    public function owner(): BelongsTo
     {
-        return [
-            'financial_year_start' => 'date',
-            'is_active'            => 'boolean',
-        ];
+        return $this->belongsTo(User::class, 'owner_id');
     }
 
     public function users(): HasMany
@@ -45,18 +52,35 @@ class Company extends Model
         return $this->hasMany(User::class);
     }
 
-    public function accounts(): HasMany
+    public function invitations(): HasMany
     {
-        return $this->hasMany(Account::class);
+        return $this->hasMany(CompanyInvitation::class);
     }
 
-    public function accountingPeriods(): HasMany
+    public function taxProfile(): HasOne
     {
-        return $this->hasMany(AccountingPeriod::class);
+        return $this->hasOne(CompanyTaxProfile::class);
     }
 
-    public function journals(): HasMany
+    // ─── Helpers ──────────────────────────────────────────────
+
+    public function isOnboardingComplete(): bool
     {
-        return $this->hasMany(JournalHeader::class);
+        return ! is_null($this->onboarding_completed_at);
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === CompanyStatus::Active;
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === CompanyStatus::Draft;
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->status === CompanyStatus::Suspended;
     }
 }
