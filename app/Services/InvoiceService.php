@@ -81,9 +81,12 @@ class InvoiceService
                 'posted_at' => now(),
             ]);
         });
-        // Dispatch e-Invoice submission (outside transaction — safe)
-        SubmitInvoiceJob::dispatch($invoice)
-            ->onQueue('default');        
+
+        // MyInvois — B2B only. Individual/B2C customers go via consolidated monthly batch.
+        if (! $invoice->customer->is_individual) {
+            SubmitInvoiceJob::dispatch($invoice)->onQueue('default');
+        }        
+        
     }
 
     public function void(Invoice $invoice, string $reason): void

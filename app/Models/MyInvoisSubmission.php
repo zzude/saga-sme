@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MyInvoisSubmission extends Model
 {
+    protected $table = 'myinvois_submissions';
     use HasCompanyScope, LogsActivityTrait;
 
     protected $fillable = [

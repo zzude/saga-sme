@@ -7,6 +7,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
 class CustomersTable
@@ -44,6 +45,14 @@ class CustomersTable
                 TextColumn::make('credit_limit')
                     ->numeric()
                     ->sortable(),
+                IconColumn::make('is_individual')
+                    ->label('B2C/Ind.')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-user')
+                    ->falseIcon('heroicon-o-building-office-2')
+                    ->trueColor('warning')
+                    ->falseColor('success')
+                    ->sortable(),
                 IconColumn::make('is_active')
                     ->boolean(),
                 TextColumn::make('created_at')
@@ -56,7 +65,11 @@ class CustomersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                TernaryFilter::make('is_individual')
+                    ->label('Customer Type')
+                    ->placeholder('All customers')
+                    ->trueLabel('Individual / B2C only')
+                    ->falseLabel('Business / B2B only'),
             ])
             ->recordActions([
                 EditAction::make(),

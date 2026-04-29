@@ -9,3 +9,8 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command("notify:financial")->dailyAt("08:00");
+
+Schedule::command('einvoice:consolidated')
+    ->monthlyOn(1, '02:00')   // 1st of every month at 2am
+    ->withoutOverlapping()
+    ->runInBackground();

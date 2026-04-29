@@ -28,6 +28,7 @@ class Customer extends Model
         'credit_term_days',
         'credit_limit',
         'is_active',
+        'is_individual',
     ];
 
     protected function casts(): array
@@ -36,6 +37,7 @@ class Customer extends Model
             'credit_limit'      => 'decimal:2',
             'credit_term_days'  => 'integer',
             'is_active'         => 'boolean',
+            'is_individual' => 'boolean',
         ];
     }
 
