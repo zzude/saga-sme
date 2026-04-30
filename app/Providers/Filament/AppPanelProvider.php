@@ -17,6 +17,8 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Filament\Resources\CurrencyResource;
+use App\Filament\Resources\ExchangeRateResource;
 
 class AppPanelProvider extends PanelProvider
 {
@@ -42,6 +44,8 @@ class AppPanelProvider extends PanelProvider
                 \App\Filament\Resources\BankReconciliations\BankReconciliationResource::class,
                 \App\Filament\App\Resources\TaxCodeResource::class,
                 \App\Filament\App\Resources\CompanyTaxProfileResource::class,
+                CurrencyResource::class,
+                ExchangeRateResource::class,
                 ])
             ->pages([
                 Dashboard::class,

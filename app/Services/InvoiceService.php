@@ -19,16 +19,22 @@ class InvoiceService
             throw new \Exception('Only draft or sent invoices can be posted.');
         }
 
-        // Check if already posted — SEBELUM transaction
+        // Check if already posted
         $existing = JournalHeader::where('company_id', $invoice->company_id)
             ->where('reference_no', $invoice->invoice_no)
             ->first();
 
         if ($existing) {
             throw new \Exception('Invoice already posted to GL.');
-        }        
+        }
 
-        // Find AR account (1300)
+        // ── FX: validate rate present ─────────────────────────────────────
+        $rate = (float) ($invoice->exchange_rate ?? 1.0);
+        if ($rate <= 0) {
+            throw new \Exception('Invalid exchange rate. Please set a valid rate before posting.');
+        }
+
+        // Find AR account (1300-level asset Receivable)
         $arAccount = Account::where('company_id', $invoice->company_id)
             ->where('type', 'asset')
             ->where('level', 3)
@@ -39,54 +45,113 @@ class InvoiceService
             throw new \Exception('Accounts Receivable account not found. Please create an asset account with "Receivable" in the name.');
         }
 
-        DB::transaction(function () use ($invoice, $arAccount) {
+        DB::transaction(function () use ($invoice, $arAccount, $rate) {
 
-            // Create Journal Header
+            // ── Step 1: Compute base_* on each line (Option B — no double rounding) ──
+            $invoice->load('lines');
+            foreach ($invoice->lines as $line) {
+                $line->foreign_unit_price = $line->unit_price;
+                $line->foreign_line_total = $line->line_total;
+                $line->base_unit_price    = round((float) $line->unit_price * $rate, 2);  // informational
+                $line->base_line_total    = round((float) $line->line_total * $rate, 2);  // GL authoritative
+                $line->save();
+            }
+
+            // ── Step 2: Compute base_* on invoice header ──────────────────
+            $baseSubtotal = $invoice->lines->sum('base_line_total');
+            // Tax converted separately — consistent with line-level rounding
+            $baseTax      = round((float) $invoice->tax_amount * $rate, 2);
+            $baseTotal    = round($baseSubtotal + $baseTax, 2);
+
+            // Store foreign totals snapshot
+            $invoice->foreign_subtotal = $invoice->subtotal;
+            $invoice->foreign_tax      = $invoice->tax_amount;
+            $invoice->foreign_total    = $invoice->total;
+
+            // Store MYR base totals (immutable after posting)
+            $invoice->base_subtotal = $baseSubtotal;
+            $invoice->base_tax      = $baseTax;
+            $invoice->base_total    = $baseTotal;
+            $invoice->save();
+
+            // ── Step 3: Create Journal Header (MYR only) ──────────────────
+            $currencyCode = $invoice->currency_code ?? 'MYR';
+
             $journal = JournalHeader::create([
-                'company_id'   => $invoice->company_id,
-                'period_id'    => $invoice->period_id,
-                'reference_no' => $invoice->invoice_no,
-                'date'         => $invoice->date,
-                'status'       => 'posted',
+                'company_id'             => $invoice->company_id,
+                'period_id'              => $invoice->period_id,
+                'reference_no'           => $invoice->invoice_no,
+                'date'                   => $invoice->date,
+                'status'                 => 'posted',
                 'source_type'  => 'manual',
-                'summary_text' => 'Invoice ' . $invoice->invoice_no . ' — ' . $invoice->customer->name,
-                'created_by'   => Auth::id(),
-                'posted_by'    => Auth::id(),
-                'posted_at'    => now(),
+                'summary_text'           => 'Invoice ' . $invoice->invoice_no
+                                            . ' — ' . $invoice->customer->name
+                                            . ($currencyCode !== 'MYR' ? " ({$currencyCode} @ {$rate})" : ''),
+                // FX metadata — informational, GL lines are always MYR
+                'exchange_rate'          => $rate,
+                'original_currency_code' => $currencyCode,
+                'created_by'             => Auth::id(),
+                'posted_by'              => Auth::id(),
+                'posted_at'              => now(),
             ]);
 
-            // DR Accounts Receivable
+            // ── Step 4: GL Lines — ALL in MYR (base_* amounts) ───────────
+
+            // DR Accounts Receivable (base_total)
             JournalLine::create([
                 'journal_header_id' => $journal->id,
                 'account_id'        => $arAccount->id,
-                'debit'             => $invoice->total,
+                'debit'             => $baseTotal,
                 'credit'            => 0,
-                'description'       => 'AR — ' . $invoice->invoice_no,
+                'description'       => 'AR — ' . $invoice->invoice_no
+                                        . ($currencyCode !== 'MYR' ? " ({$currencyCode} {$invoice->total} @ {$rate})" : ''),
             ]);
 
-            // CR Revenue accounts (per line)
+            // CR Revenue accounts per line (base_line_total)
             foreach ($invoice->lines as $line) {
                 JournalLine::create([
                     'journal_header_id' => $journal->id,
                     'account_id'        => $line->account_id,
                     'debit'             => 0,
-                    'credit'            => $line->line_total,
-                    'description'       => $line->description,
+                    'credit'            => $line->base_line_total,
+                    'description'       => $line->description
+                                            . ($currencyCode !== 'MYR' ? " ({$currencyCode} {$line->line_total})" : ''),
                 ]);
             }
 
-            // Update invoice status
+            // CR SST Payable — if tax exists
+            if ($baseTax > 0) {
+                $sstAccount = Account::where('company_id', $invoice->company_id)
+                    ->where('type', 'liability')
+                    ->where('name', 'like', '%SST%')
+                    ->orWhere('name', 'like', '%Tax Payable%')
+                    ->where('company_id', $invoice->company_id)
+                    ->first();
+
+                if ($sstAccount) {
+                    JournalLine::create([
+                        'journal_header_id' => $journal->id,
+                        'account_id'        => $sstAccount->id,
+                        'debit'             => 0,
+                        'credit'            => $baseTax,
+                        'description'       => 'SST — ' . $invoice->invoice_no,
+                    ]);
+                }
+                // Note: if no SST account found, tax is already included in line CR above
+                // This handles cases where tax is embedded in line_total
+            }
+
+            // ── Step 5: Lock invoice fields + update status ───────────────
             $invoice->update([
                 'status'    => 'sent',
                 'posted_at' => now(),
             ]);
         });
 
-        // MyInvois — B2B only. Individual/B2C customers go via consolidated monthly batch.
+        // MyInvois — B2B only
         if (! $invoice->customer->is_individual) {
             SubmitInvoiceJob::dispatch($invoice)->onQueue('default');
-        }        
-        
+        }
     }
 
     public function void(Invoice $invoice, string $reason): void
@@ -96,7 +161,6 @@ class InvoiceService
         }
 
         DB::transaction(function () use ($invoice, $reason) {
-            // Reverse the journal
             $originalJournal = JournalHeader::where('reference_no', $invoice->invoice_no)
                 ->where('company_id', $invoice->company_id)
                 ->first();
@@ -130,7 +194,6 @@ class InvoiceService
             throw new \Exception('Payment amount cannot exceed balance due of MYR ' . number_format($invoice->balance_due, 2));
         }
 
-        // Find AR account
         $arAccount = Account::where('company_id', $invoice->company_id)
             ->where('type', 'asset')
             ->where('level', 3)
@@ -141,7 +204,6 @@ class InvoiceService
             throw new \Exception('Accounts Receivable account not found.');
         }
 
-        // Find bank account
         $bankAccount = Account::where('company_id', $invoice->company_id)
             ->where('id', $data['bank_account_id'])
             ->first();
@@ -152,7 +214,6 @@ class InvoiceService
 
         DB::transaction(function () use ($invoice, $data, $paymentAmount, $arAccount, $bankAccount) {
 
-            // Create Journal
             $journal = JournalHeader::create([
                 'company_id'   => $invoice->company_id,
                 'period_id'    => $invoice->period_id,
@@ -166,7 +227,6 @@ class InvoiceService
                 'posted_at'    => now(),
             ]);
 
-            // DR Bank
             JournalLine::create([
                 'journal_header_id' => $journal->id,
                 'account_id'        => $bankAccount->id,
@@ -175,7 +235,6 @@ class InvoiceService
                 'description'       => 'Payment received — ' . $invoice->invoice_no,
             ]);
 
-            // CR Accounts Receivable
             JournalLine::create([
                 'journal_header_id' => $journal->id,
                 'account_id'        => $arAccount->id,
@@ -184,7 +243,6 @@ class InvoiceService
                 'description'       => 'AR settled — ' . $invoice->invoice_no,
             ]);
 
-            // Record payment
             InvoicePayment::create([
                 'company_id'        => $invoice->company_id,
                 'invoice_id'        => $invoice->id,
@@ -198,10 +256,9 @@ class InvoiceService
                 'received_by'       => Auth::user()->name,
             ]);
 
-            // Update invoice
-            $newPaid      = (float) $invoice->paid_amount + $paymentAmount;
-            $newBalance   = (float) $invoice->total - $newPaid;
-            $newStatus    = $newBalance <= 0 ? 'paid' : 'partial';
+            $newPaid    = (float) $invoice->paid_amount + $paymentAmount;
+            $newBalance = (float) $invoice->total - $newPaid;
+            $newStatus  = $newBalance <= 0 ? 'paid' : 'partial';
 
             $invoice->update([
                 'paid_amount' => $newPaid,
@@ -210,5 +267,4 @@ class InvoiceService
             ]);
         });
     }
-    
 }
