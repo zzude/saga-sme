@@ -106,7 +106,7 @@ class ViewBill extends ViewRecord
                 ->label('Print PDF')
                 ->icon('heroicon-o-printer')
                 ->color('info')
-                ->url(fn () => route('bill.pdf', $this->record->id))
+                ->url('#')->disabled()
                 ->openUrlInNewTab(),                
 
             EditAction::make(),

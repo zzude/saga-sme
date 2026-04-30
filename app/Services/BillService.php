@@ -18,6 +18,12 @@ class BillService
             throw new \Exception('Only draft or submitted bills can be posted.');
         }
 
+        // ── FX: validate rate ─────────────────────────────────────────────
+        $rate = (float) ($bill->exchange_rate ?? 1.0);
+        if ($rate <= 0) {
+            throw new \Exception('Invalid exchange rate. Please set a valid rate before posting.');
+        }
+
         // Find AP account
         $apAccount = Account::where('company_id', $bill->company_id)
             ->where('type', 'liability')
@@ -29,43 +35,101 @@ class BillService
             throw new \Exception('Accounts Payable account not found. Please create a liability account with "Payable" in the name.');
         }
 
-        DB::transaction(function () use ($bill, $apAccount) {
+        DB::transaction(function () use ($bill, $apAccount, $rate) {
 
-            // Create Journal Header
+            // ── Step 1: Compute base_* on each line (Option B) ────────────
+            $bill->load('lines');
+            foreach ($bill->lines as $line) {
+                $line->foreign_unit_price = $line->unit_price;
+                $line->foreign_line_total = $line->line_total;
+                $line->base_unit_price    = round((float) $line->unit_price * $rate, 2);  // informational
+                $line->base_line_total    = round((float) $line->line_total * $rate, 2);  // GL authoritative
+                $line->save();
+            }
+
+            // ── Step 2: Compute base_* on bill header ─────────────────────
+            $baseSubtotal = $bill->lines->sum('base_line_total');
+            $baseTax      = round((float) $bill->tax_amount * $rate, 2);
+            $baseTotal    = round($baseSubtotal + $baseTax, 2);
+
+            // Store foreign totals snapshot
+            $bill->foreign_subtotal = $bill->subtotal;
+            $bill->foreign_tax      = $bill->tax_amount;
+            $bill->foreign_total    = $bill->total;
+
+            // Store MYR base totals (immutable after posting)
+            $bill->base_subtotal = $baseSubtotal;
+            $bill->base_tax      = $baseTax;
+            $bill->base_total    = $baseTotal;
+            $bill->save();
+
+            // ── Step 3: Create Journal Header (MYR only) ──────────────────
+            $currencyCode = $bill->currency_code ?? 'MYR';
+
             $journal = JournalHeader::create([
-                'company_id'   => $bill->company_id,
-                'period_id'    => $bill->period_id,
-                'reference_no' => $bill->bill_no,
-                'date'         => $bill->date,
-                'status'       => 'posted',
-                'source_type'  => 'manual',
-                'summary_text' => 'Bill ' . $bill->bill_no . ' — ' . $bill->vendor->name,
-                'created_by'   => Auth::id(),
-                'posted_by'    => Auth::id(),
-                'posted_at'    => now(),
+                'company_id'             => $bill->company_id,
+                'period_id'              => $bill->period_id,
+                'reference_no'           => $bill->bill_no,
+                'date'                   => $bill->date,
+                'status'                 => 'posted',
+                'source_type'            => 'manual',
+                'summary_text'           => 'Bill ' . $bill->bill_no
+                                            . ' — ' . $bill->vendor->name
+                                            . ($currencyCode !== 'MYR' ? " ({$currencyCode} @ {$rate})" : ''),
+                // FX metadata — informational, GL lines always MYR
+                'exchange_rate'          => $rate,
+                'original_currency_code' => $currencyCode,
+                'created_by'             => Auth::id(),
+                'posted_by'              => Auth::id(),
+                'posted_at'              => now(),
             ]);
 
-            // DR Expense accounts (per line)
+            // ── Step 4: GL Lines — ALL in MYR (base_* amounts) ───────────
+
+            // DR Expense accounts per line (base_line_total)
             foreach ($bill->lines as $line) {
                 JournalLine::create([
                     'journal_header_id' => $journal->id,
                     'account_id'        => $line->account_id,
-                    'debit'             => $line->line_total,
+                    'debit'             => $line->base_line_total,
                     'credit'            => 0,
-                    'description'       => $line->description,
+                    'description'       => $line->description
+                                            . ($currencyCode !== 'MYR' ? " ({$currencyCode} {$line->line_total})" : ''),
                 ]);
             }
 
-            // CR Accounts Payable
+            // DR Input Tax — if tax exists
+            if ($baseTax > 0) {
+                $inputTaxAccount = Account::where('company_id', $bill->company_id)
+                    ->where('type', 'asset')
+                    ->where('name', 'like', '%Input Tax%')
+                    ->orWhere('name', 'like', '%Tax Receivable%')
+                    ->where('company_id', $bill->company_id)
+                    ->first();
+
+                if ($inputTaxAccount) {
+                    JournalLine::create([
+                        'journal_header_id' => $journal->id,
+                        'account_id'        => $inputTaxAccount->id,
+                        'debit'             => $baseTax,
+                        'credit'            => 0,
+                        'description'       => 'Input Tax — ' . $bill->bill_no,
+                    ]);
+                }
+                // If no input tax account, tax already embedded in line DR above
+            }
+
+            // CR Accounts Payable (base_total)
             JournalLine::create([
                 'journal_header_id' => $journal->id,
                 'account_id'        => $apAccount->id,
                 'debit'             => 0,
-                'credit'            => $bill->total,
-                'description'       => 'AP — ' . $bill->bill_no,
+                'credit'            => $baseTotal,
+                'description'       => 'AP — ' . $bill->bill_no
+                                        . ($currencyCode !== 'MYR' ? " ({$currencyCode} {$bill->total} @ {$rate})" : ''),
             ]);
 
-            // Update bill
+            // ── Step 5: Update bill status ────────────────────────────────
             $bill->update([
                 'status'            => 'approved',
                 'posted_at'         => now(),
@@ -112,7 +176,6 @@ class BillService
 
         DB::transaction(function () use ($bill, $data, $paymentAmount, $apAccount, $bankAccount) {
 
-            // Create Journal
             $journal = JournalHeader::create([
                 'company_id'   => $bill->company_id,
                 'period_id'    => $bill->period_id,
@@ -144,7 +207,6 @@ class BillService
                 'description'       => 'Payment — ' . $bill->bill_no,
             ]);
 
-            // Record payment
             BillPayment::create([
                 'company_id'        => $bill->company_id,
                 'bill_id'           => $bill->id,
@@ -158,7 +220,6 @@ class BillService
                 'paid_by'           => Auth::user()->name,
             ]);
 
-            // Update bill
             $newPaid    = (float) $bill->paid_amount + $paymentAmount;
             $newBalance = (float) $bill->total - $newPaid;
             $newStatus  = $newBalance <= 0 ? 'paid' : 'partial';
@@ -191,9 +252,9 @@ class BillService
             }
 
             $bill->update([
-                'status'     => 'void',
-                'voided_by'  => Auth::id(),
-                'voided_at'  => now(),
+                'status'      => 'void',
+                'voided_by'   => Auth::id(),
+                'voided_at'   => now(),
                 'void_reason' => $reason,
             ]);
         });
