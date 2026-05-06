@@ -28,6 +28,7 @@ class ChartOfAccountsSeeder extends Seeder
         ['1150', 'Inventory',                         'asset', 3, '1100'],
         ['1160', 'Prepaid Expenses',                  'asset', 3, '1100'],
         ['1170', 'SST Receivable',                    'asset', 3, '1100'],
+        ['1180', 'Staff Loans Receivable',           'asset', 3, '1100'],
 
         ['1200', 'Non-Current Assets',                'asset', 2, '1000'],
         ['1210', 'Plant & Equipment (at cost)',       'asset', 3, '1200'],
