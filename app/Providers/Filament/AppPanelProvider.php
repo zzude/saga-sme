@@ -46,6 +46,9 @@ class AppPanelProvider extends PanelProvider
                 \App\Filament\App\Resources\CompanyTaxProfileResource::class,
                 CurrencyResource::class,
                 ExchangeRateResource::class,
+                \App\Filament\Resources\Payroll\EmployeeResource::class,
+                \App\Filament\Resources\Payroll\PayrollPeriodResource::class,
+                \App\Filament\Resources\Payroll\PayrollRunResource::class,
                 ])
             ->pages([
                 Dashboard::class,
