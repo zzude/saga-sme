@@ -24,7 +24,7 @@ class StaffLoanResource extends Resource
 
     public static function getNavigationGroup(): string
     {
-        return 'Payroll & HR';
+        return 'HR & Payroll';
     }
 
     public static function getNavigationLabel(): string
