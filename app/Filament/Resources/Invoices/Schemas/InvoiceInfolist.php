@@ -138,6 +138,60 @@ class InvoiceInfolist
                             ->dateTime(),
                     ]),
 
+
+                Section::make('e-Invoice (MyInvois)')
+                    ->columns(2)
+                    ->schema([
+                        TextEntry::make('einvoice_status')
+                            ->label('Status')
+                            ->badge()
+                            ->color(fn (?string $state): string => match ($state) {
+                                'submitted'  => 'warning',
+                                'processing' => 'info',
+                                'valid'      => 'success',
+                                'rejected'   => 'danger',
+                                'cancelled'  => 'gray',
+                                default      => 'gray',
+                            })
+                            ->formatStateUsing(fn (?string $state): string => match ($state) {
+                                'submitted'  => 'Submitted',
+                                'processing' => 'Processing',
+                                'valid'      => 'Valid ✓',
+                                'rejected'   => 'Rejected ✗',
+                                'cancelled'  => 'Cancelled',
+                                default      => 'Not Submitted',
+                            }),
+                        TextEntry::make('einvoice_submitted_at')
+                            ->label('Submitted At')
+                            ->dateTime()
+                            ->placeholder('-'),
+                        TextEntry::make('einvoice_uuid')
+                            ->label('UUID')
+                            ->placeholder('-')
+                            ->copyable()
+                            ->copyMessage('UUID copied!')
+                            ->columnSpanFull(),
+                        TextEntry::make('einvoice_submission_uid')
+                            ->label('Submission UID')
+                            ->placeholder('-')
+                            ->copyable()
+                            ->columnSpanFull(),
+                        TextEntry::make('einvoice_long_id')
+                            ->label('Long ID (QR)')
+                            ->placeholder('-')
+                            ->copyable()
+                            ->columnSpanFull(),
+                        TextEntry::make('einvoice_validated_at')
+                            ->label('Validated At')
+                            ->dateTime()
+                            ->placeholder('-'),
+                        TextEntry::make('einvoice_errors')
+                            ->label('Errors')
+                            ->placeholder('None')
+                            ->color('danger')
+                            ->columnSpanFull()
+                            ->visible(fn ($record) => $record->einvoice_errors !== null),
+                    ]),
             ]);
     }
 }

@@ -26,7 +26,7 @@ class StatusService
     private function realPoll(Invoice $invoice): array
     {
         if (!$invoice->einvoice_submission_uid) {
-            throw new \Exception('No submission UID found for invoice ' . $invoice->invoice_number);
+            throw new \Exception('No submission UID found for invoice ' . $invoice->invoice_no);
         }
 
         $env     = config('einvoice.env', 'sandbox');
