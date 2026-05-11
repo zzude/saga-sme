@@ -10,11 +10,21 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\InvoicePayment;
 use App\Jobs\SubmitInvoiceJob;
+use App\Services\PlanService;
 
 class InvoiceService
 {
     public function post(Invoice $invoice): void
     {
+        // Plan limit check
+        $planService = app(PlanService::class);
+        if (!$planService->canCreateInvoice($invoice->company)) {
+            $usage = $planService->getUsage($invoice->company);
+            throw new \Exception(
+                'Had invois bulanan dicapai (' . $usage['invoices_month']['used'] . '/' . $usage['invoices_month']['limit'] . '). Naik taraf plan untuk teruskan.'
+            );
+        }
+
         if (!$invoice->isDraft() && $invoice->status !== 'sent') {
             throw new \Exception('Only draft or sent invoices can be posted.');
         }

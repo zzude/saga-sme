@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\CompanyStatus;
+use App\Models\Plan;
+use App\Models\CompanyPlan;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +14,7 @@ class Company extends Model
 {
     protected $fillable = [
         'name',
+        'plan_id',
         'registration_number',
         'tax_number',
         'sst_number',
@@ -41,6 +44,16 @@ class Company extends Model
     ];
 
     // ─── Relationships ────────────────────────────────────────
+
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
+    }
+
+    public function companyPlans(): HasMany
+    {
+        return $this->hasMany(CompanyPlan::class);
+    }
 
     public function owner(): BelongsTo
     {

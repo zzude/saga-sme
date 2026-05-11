@@ -35,6 +35,7 @@ class AdminPanelProvider extends PanelProvider
             // Manual resource registration — do not use discoverResources()
             ->resources([
                 // Register admin resources here as the project grows:
+                \App\Filament\Resources\Plans\PlanResource::class,
                 // \App\Filament\Admin\Resources\UserResource::class,
                 // \App\Filament\Admin\Resources\CompanyResource::class,
                 \App\Filament\Resources\MyInvoisProfiles\MyInvoisProfileResource::class,
