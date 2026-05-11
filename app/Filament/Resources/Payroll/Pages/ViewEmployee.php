@@ -1,3 +1,5 @@
+<?php
+
 namespace App\Filament\Resources\Payroll\Pages;
 
 use App\Filament\Resources\Payroll\EmployeeResource;

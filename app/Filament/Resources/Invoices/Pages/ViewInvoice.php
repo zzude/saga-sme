@@ -199,6 +199,17 @@ class ViewInvoice extends ViewRecord
                         ->send();
                 }),
 
+            // ── Pay Now (Billplz) ──────────────────────────────────────
+            Action::make('payNow')
+                ->label(fn () => 'Pay Now (Billplz) — MYR ' . number_format($this->record->balance_due, 2))
+                ->icon('heroicon-o-credit-card')
+                ->color('success')
+                ->visible(fn () => in_array($this->record->status, ['sent', 'partial'])
+                    && (float) $this->record->balance_due > 0
+                    && config('billplz.api_key') !== '')
+                ->url(fn () => route('payment.invoice', $this->record->id))
+                ->openUrlInNewTab(),
+
             EditAction::make(),
         ];
     }

@@ -83,3 +83,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/payroll/ea-form/{employee}/{year}', [\App\Http\Controllers\PayrollPdfController::class, 'eaForm'])
         ->name('payroll.ea-form');
 });
+
+// ── Billplz Payment ───────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/payment/invoice/{invoice}', [\App\Http\Controllers\PaymentController::class, 'payInvoice'])
+        ->name('payment.invoice');
+    Route::get('/payment/redirect/{invoice}', [\App\Http\Controllers\PaymentController::class, 'redirect'])
+        ->name('billplz.redirect');
+});
+
+// Billplz callback — no auth (server-to-server)
+Route::post('/billplz/callback', [\App\Http\Controllers\PaymentController::class, 'callback'])
+    ->name('billplz.callback');
