@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Enums\CompanyStatus;
 use App\Models\Plan;
 use App\Models\CompanyPlan;
+use App\Models\Invoice;
+use App\Models\Customer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -53,6 +55,16 @@ class Company extends Model
     public function companyPlans(): HasMany
     {
         return $this->hasMany(CompanyPlan::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function customers(): HasMany
+    {
+        return $this->hasMany(Customer::class);
     }
 
     public function owner(): BelongsTo
