@@ -73,3 +73,13 @@ Route::get('/invoices/{id}/pdf', function ($id) {
     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('reports.invoice-pdf', compact('invoice', 'company'));
     return $pdf->stream('invoice-' . $invoice->invoice_no . '.pdf');
 })->name('invoice.pdf');
+
+// ── Payroll PDF ───────────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/payroll/payslip/{run}/{line}', [\App\Http\Controllers\PayrollPdfController::class, 'payslip'])
+        ->name('payroll.payslip');
+    Route::get('/payroll/payslip-all/{run}', [\App\Http\Controllers\PayrollPdfController::class, 'payslipAll'])
+        ->name('payroll.payslip.all');
+    Route::get('/payroll/ea-form/{employee}/{year}', [\App\Http\Controllers\PayrollPdfController::class, 'eaForm'])
+        ->name('payroll.ea-form');
+});

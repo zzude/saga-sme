@@ -8,6 +8,7 @@ use App\Services\PayrollService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Support\Facades\URL;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -106,6 +107,15 @@ class ViewPayrollRun extends ViewRecord
                             ->send();
                     }
                 }),
+            // ── Print All Payslips ─────────────────────────────────────
+            Action::make('printPayslips')
+                ->label('Print All Payslips')
+                ->icon('heroicon-o-printer')
+                ->color('info')
+                ->visible(fn () => in_array($this->record->status, ['approved', 'posted']))
+                ->url(fn () => route('payroll.payslip.all', $this->record))
+                ->openUrlInNewTab(),
+
         ];
     }
 
