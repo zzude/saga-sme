@@ -30,12 +30,10 @@ class PaymentController extends Controller
 
             // Mock mode — redirect ke mock payment page
             if (config('billplz.mock_mode')) {
-                $url = route('billplz.mock.page', $bill->billplz_id);
-                return view('payment.redirect', compact('url'));
+                return redirect()->route('billplz.mock.page', $bill->billplz_id);
             }
 
-            $url = $bill->url;
-            return view('payment.redirect', compact('url'));
+            return redirect($bill->url);
         } catch (\Exception $e) {
             Log::error('[Billplz] createInvoiceBill failed', [
                 'invoice_id' => $invoice->id,

@@ -93,6 +93,10 @@ class BillplzService
     // ── Create Invoice Payment Bill ───────────────────────────────
     public function createInvoiceBill(Invoice $invoice): BillplzBill
     {
+        if (config('billplz.mock_mode')) {
+            return $this->mockCreateInvoiceBill($invoice);
+        }
+
         $customer = $invoice->customer;
         $company  = $invoice->company;
 
@@ -128,6 +132,36 @@ class BillplzService
             'status'         => 'pending',
             'url'            => $paymentUrl,
         ]);
+    }
+
+    // ── Mock Create Invoice Bill ─────────────────────────────────────
+    private function mockCreateInvoiceBill(Invoice $invoice): BillplzBill
+    {
+        $mockId = 'MOCK-' . strtoupper(\Illuminate\Support\Str::random(8));
+        $payUrl = route('billplz.mock.page', $mockId);
+
+        $bill = BillplzBill::create([
+            'company_id'    => $invoice->company_id,
+            'billplz_id'   => $mockId,
+            'collection_id'=> 'MOCK-COLLECTION',
+            'billable_type'=> Invoice::class,
+            'billable_id'  => $invoice->id,
+            'reference_no' => $invoice->invoice_no,
+            'description'  => 'Invoice ' . $invoice->invoice_no,
+            'amount'       => $invoice->balance_due,
+            'payer_name'   => $invoice->customer->name,
+            'payer_email'  => $invoice->customer->email,
+            'payer_phone'  => $invoice->customer->phone,
+            'status'       => 'pending',
+            'url'          => $payUrl,
+        ]);
+
+        \Illuminate\Support\Facades\Log::info('[Billplz Mock] Bill created', [
+            'mock_id'    => $mockId,
+            'invoice_id' => $invoice->id,
+        ]);
+
+        return $bill;
     }
 
     // ── Handle Callback ───────────────────────────────────────────
