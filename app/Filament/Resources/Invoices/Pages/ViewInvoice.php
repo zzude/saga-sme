@@ -206,7 +206,7 @@ class ViewInvoice extends ViewRecord
                 ->color('success')
                 ->visible(fn () => in_array($this->record->status, ['sent', 'partial'])
                     && (float) $this->record->balance_due > 0
-                    && config('billplz.api_key') !== '')
+                    && (config('billplz.mock_mode') || config('billplz.api_key') !== ''))
                 ->url(fn () => route('payment.invoice', $this->record->id))
                 ->openUrlInNewTab(),
 
