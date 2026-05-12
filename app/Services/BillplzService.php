@@ -6,6 +6,7 @@ use App\Models\BillplzBill;
 use App\Models\Invoice;
 use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class BillplzService
 {

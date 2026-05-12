@@ -95,3 +95,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Billplz callback — no auth (server-to-server)
 Route::post('/billplz/callback', [\App\Http\Controllers\PaymentController::class, 'callback'])
     ->name('billplz.callback');
+
+// ── Billplz Mock (Sandbox Simulation) ────────────────────────────────────
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/billplz/mock/{billId}', [\App\Http\Controllers\PaymentController::class, 'mockPage'])
+        ->name('billplz.mock.page');
+    Route::post('/billplz/mock/{billId}/pay', [\App\Http\Controllers\PaymentController::class, 'mockPay'])
+        ->name('billplz.mock.pay');
+});
