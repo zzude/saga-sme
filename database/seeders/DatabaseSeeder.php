@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             ChartOfAccountsSeeder::class,
             CurrencySeeder::class,          // seed currencies table
             BaseCurrencyPatchSeeder::class, // patch companies.base_currency = MYR            
+            DemoDataSeeder::class,
         ]);       
 
     }
