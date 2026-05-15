@@ -8,7 +8,7 @@ use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Schemas\Schema;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Components\Section;
+use Filament\Schemas\Components\Section;
 use Filament\Infolists\Components\RepeatableEntry;
 
 class ViewWarrantAllocation extends ViewRecord
@@ -64,3 +64,4 @@ class ViewWarrantAllocation extends ViewRecord
         ]);
     }
 }
+

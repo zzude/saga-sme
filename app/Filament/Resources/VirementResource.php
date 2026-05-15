@@ -41,8 +41,7 @@ class VirementResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        $budgetItemOptions = fn(\Filament\Forms\Get $get) =>
-            BudgetItem::where('annual_budget_id', $get('annual_budget_id'))->pluck('description', 'id');
+        $budgetItemOptions = fn($get) => \App\Models\BudgetItem::where('company_id', \Illuminate\Support\Facades\Auth::user()?->company_id ?? 1)->pluck('description', 'id');
 
         return $schema->components([
             Section::make('Maklumat Virement')
@@ -168,4 +167,6 @@ class VirementResource extends Resource
         return parent::getEloquentQuery()->where('company_id', Auth::user()?->company_id ?? 1);
     }
 }
+
+
 

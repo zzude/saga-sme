@@ -51,7 +51,7 @@ class SupplementaryBudgetResource extends Resource
                     Textarea::make('justification')->label('Justifikasi')->columnSpanFull()->rows(3)->required(),
                     Select::make('budget_item_id')
                         ->label('Item Bajet')
-                        ->options(fn(\Filament\Forms\Get $get) =>
+                        ->options(fn($get) =>
                             BudgetItem::where('annual_budget_id', $get('annual_budget_id'))->pluck('description', 'id'))
                         ->searchable()->required(),
                     TextInput::make('amount')->label('Amaun Tambahan (RM)')->numeric()->required()->prefix('RM')
@@ -138,4 +138,5 @@ class SupplementaryBudgetResource extends Resource
         return parent::getEloquentQuery()->where('company_id', Auth::user()?->company_id ?? 1);
     }
 }
+
 

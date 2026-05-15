@@ -63,12 +63,12 @@ class GovernmentBankAccount extends Model
             ->where('account_id', $this->account_id)
             ->where('company_id', $this->company_id)
             ->whereHas('journal', fn($q) => $q->where('status', 'posted'))
-            ->sum('debit_amount');
+            ->sum('debit');
 
         $cr = DB::table('journal_entries')
             ->where('account_id', $this->account_id)
             ->where('company_id', $this->company_id)
-            ->sum('credit_amount');
+            ->sum('credit');
 
         $this->update([
             'current_balance'    => $dr - $cr,
@@ -93,4 +93,5 @@ class GovernmentBankAccount extends Model
         return $query->where('company_id', $companyId);
     }
 }
+
 

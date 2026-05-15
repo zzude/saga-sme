@@ -255,7 +255,16 @@ class BudgetService
                 'approval_notes' => $notes,
             ]);
 
-            $this->recalculateBudget($virement->annualBudget);
+            $total     = $budget->budgetItems()->sum('original_amount');
+            $revised   = $budget->budgetItems()->sum('revised_amount');
+            $allocated = $budget->budgetItems()->sum('allocated_amount');
+            $actual    = $budget->budgetItems()->sum('actual_amount');
+
+            $budget->update([
+                'total_amount'     => $total,
+                'allocated_amount' => $allocated,
+                'balance_amount'   => $revised - $allocated,
+            ]);
         });
 
         return $virement->fresh();
@@ -360,24 +369,22 @@ class BudgetService
         // Debit side (cash in)
         $dr = DB::table('journal_lines')
             ->where('account_id', $govAccount->account_id)
-            ->where('company_id', $govAccount->company_id)
             ->whereIn('journal_header_id', function ($q) {
                 $q->select('id')
                     ->from('journal_headers')
                     ->where('status', 'posted');
             })
-            ->sum('debit_amount');
+            ->sum('debit');
 
         // Credit side (cash out)
         $cr = DB::table('journal_lines')
             ->where('account_id', $govAccount->account_id)
-            ->where('company_id', $govAccount->company_id)
             ->whereIn('journal_header_id', function ($q) {
                 $q->select('id')
                     ->from('journal_headers')
                     ->where('status', 'posted');
             })
-            ->sum('credit_amount');
+            ->sum('credit');
 
         $govAccount->update([
             'current_balance'    => $dr - $cr,
@@ -423,3 +430,5 @@ class BudgetService
         })->toArray();
     }
 }
+
+
