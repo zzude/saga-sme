@@ -40,6 +40,16 @@ class AdminPanelProvider extends PanelProvider
                 // \App\Filament\Admin\Resources\UserResource::class,
                 // \App\Filament\Admin\Resources\CompanyResource::class,
                 \App\Filament\Resources\MyInvoisProfiles\MyInvoisProfileResource::class,
+                \App\Filament\Resources\AnnualBudgetResource::class,
+                \App\Filament\Resources\WarrantAllocationResource::class,
+                \App\Filament\Resources\VirementResource::class,
+                \App\Filament\Resources\SupplementaryBudgetResource::class,
+                \App\Filament\Resources\GovernmentBankAccountResource::class,
+                \App\Filament\Resources\AnnualBudgetResource::class,
+                \App\Filament\Resources\WarrantAllocationResource::class,
+                \App\Filament\Resources\VirementResource::class,
+                \App\Filament\Resources\SupplementaryBudgetResource::class,
+                \App\Filament\Resources\GovernmentBankAccountResource::class,
             ])
             ->pages([
                 \App\Filament\Pages\ActivityLog::class,
@@ -65,3 +75,4 @@ class AdminPanelProvider extends PanelProvider
             ]);
     }
 }
+
