@@ -158,13 +158,12 @@
 <table class="items-table">
     <thead>
         <tr>
-            <th style="width: 4%;">Bil.</th>
-            <th style="width: 34%;">Penerangan</th>
+            <th style="width: 5%;">Bil.</th>
+            <th style="width: 45%;">Penerangan</th>
             <th style="width: 8%;">Unit</th>
-            <th class="right" style="width: 7%;">Kuantiti</th>
-            <th class="right" style="width: 12%;">Harga Unit (RM)</th>
-            <th class="right" style="width: 8%;">Diskaun %</th>
-            <th class="right" style="width: 12%;">Amaun (RM)</th>
+            <th class="right" style="width: 10%;">Kuantiti</th>
+            <th class="right" style="width: 15%;">Harga Unit (RM)</th>
+            <th class="right" style="width: 17%;">Amaun (RM)</th>
             @if($hasSst)
             <th class="right" style="width: 8%;">SST (RM)</th>
             <th class="right" style="width: 12%;">Jumlah (RM)</th>
@@ -184,12 +183,6 @@
             <td class="center">{{ $item->unit_of_measure }}</td>
             <td class="right">{{ number_format($item->quantity, 2) }}</td>
             <td class="right">{{ number_format($item->unit_price, 2) }}</td>
-            <td class="right">
-                @if($item->discount_percent > 0)
-                    {{ number_format($item->discount_percent, 1) }}%
-                @else
-                    —
-                @endif
             </td>
             <td class="right">{{ number_format($item->net_amount, 2) }}</td>
             @if($hasSst)
