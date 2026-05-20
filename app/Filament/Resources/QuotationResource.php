@@ -237,6 +237,24 @@ class QuotationResource extends Resource
                         ->numeric()
                         ->default(30)
                         ->suffix('hari'),
+
+                    TextInput::make('subtotal')
+                        ->label('Subtotal (RM)')
+                        ->disabled()
+                        ->dehydrated(false)
+                        ->prefix('RM'),
+
+                    TextInput::make('discount_amount')
+                        ->label('Diskaun (RM)')
+                        ->disabled()
+                        ->dehydrated(false)
+                        ->prefix('RM'),
+
+                    TextInput::make('total_amount')
+                        ->label('JUMLAH KESELURUHAN (RM)')
+                        ->disabled()
+                        ->dehydrated(false)
+                        ->prefix('RM'),
                 ]),
 
             Section::make('Terma & Catatan')

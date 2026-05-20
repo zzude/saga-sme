@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\QuotationController;
 use Illuminate\Support\Facades\Route;
 
 // ─── Public ───────────────────────────────────────────────────
