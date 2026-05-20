@@ -103,3 +103,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/billplz/mock/{billId}/pay', [\App\Http\Controllers\PaymentController::class, 'mockPay'])
         ->name('billplz.mock.pay');
 });
+Route::get('/quotation/{quotation}/pdf', [QuotationController::class, 'pdf'])->name('quotation.pdf');

@@ -53,6 +53,7 @@ class AppPanelProvider extends PanelProvider
                 \App\Filament\Resources\CashAdvances\CashAdvanceResource::class,
                 \App\Filament\Resources\LeaveTypes\LeaveTypeResource::class,
                 \App\Filament\Resources\LeaveApplications\LeaveApplicationResource::class,
+                \App\Filament\Resources\QuotationResource::class
                 ])
             ->pages([
                 Dashboard::class,
