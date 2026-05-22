@@ -109,3 +109,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/quotation/{quotation}/pdf', [QuotationController::class, 'pdf'])
         ->name('quotation.pdf');
 });
+
+// POS Cashier
+Route::middleware(['auth'])->group(function () {
+    Route::get('/pos', \App\Livewire\PosCashier::class)->name('pos.cashier');
+});
