@@ -44,3 +44,5 @@ null,
 id,
 invoice-
 TEST-*
+.claude/ folder tidak masuk dalam commit — dia kena ignore oleh .gitignore. Yang masuk hanya CLAUDE.md sahaja (169 insertions).
+folder tidak masuk dalam commit — dia kena ignore oleh .gitignore. Yang masuk hanya CLAUDE.md sahaja ( 169 insertions ) .*
