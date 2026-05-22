@@ -1,414 +1,238 @@
-# SAGA SME — CLAUDE.md
+# SAGA SME — AI Development Context
 
-## Project Overview
-
-**SAGA SME** is a Malaysian accounting SaaS application built for small and medium enterprises (SMEs). It handles core accounting workflows including invoicing, purchases, expenses, payroll, tax compliance (SST/e-Invoice), and financial reporting — all tailored for Malaysian business requirements.
-
-**Stack:** Laravel 12 · PHP 8.4 · Filament 5.x · MySQL 8+ · Laragon (local)
+> **For AI assistants (Claude, Copilot, etc.):** Read this file in full before writing any code.
+> Last updated: May 2026
 
 ---
 
-## Development Environment
+## 1. PROJECT OVERVIEW
 
-- **Local server:** Laragon at `http://saga-sme.test`
-- **Root:** `C:\laragon6\www\saga-sme`
-- **PHP:** 8.4
-- **Node:** 20+ (Vite)
+**SAGA SME** is a Malaysian SME accounting system built on Laravel 12 + Filament 5.x.
 
-### Common Commands
+| Item | Value |
+|---|---|
+| Full name | SAGA SME — Sistem Akaun Generik Adaptif |
+| Current version | v1.0 "Asas" (released May 2026) |
+| Repo | github.com/zzude/saga-sme |
+| Local path | `C:\laragon6\www\saga-sme` |
+| Database | `saga_sme` (MySQL/MariaDB via Laragon 6) |
+| DB credentials | root / root |
+| PHP | 8.4 |
 
-```bash
-# Dependencies
-composer install
-npm install
-
-# Development
-npm run dev           # Vite dev server (hot reload)
-php artisan serve     # only if not using Laragon
-
-# Build
-npm run build
-
-# Database
-php artisan migrate
-php artisan migrate:fresh --seed
-php artisan db:seed
-
-# Filament
-php artisan make:filament-resource ModelName --generate
-php artisan make:filament-page PageName
-php artisan make:filament-widget WidgetName
-
-# Code generation
-php artisan make:model ModelName -mfs   # model + migration + factory + seeder
-php artisan make:policy PolicyName --model=ModelName
-
-# Cache
-php artisan optimize:clear
-php artisan config:clear && php artisan route:clear && php artisan view:clear
-
-# Testing
-php artisan test
-php artisan test --filter TestClassName
-```
+**Vision:** Sabah/Sarawak SME market — affordable, locally-relevant, e-Invoice ready.
 
 ---
 
-## Architecture
+## 2. VERSION ROADMAP
 
-### Multi-Tenancy
-
-- Each **Company** is a tenant. All data is scoped by `company_id`.
-- Use `HasCompanyScope` or a global scope trait on all tenant models — always verify a query carries the company scope before executing.
-- Super-admin panel operates outside tenant scope.
-
-### Filament Panels
-
-| Panel | Path | Purpose |
-|-------|------|---------|
-| `AdminPanelProvider` | `/admin` | Super-admin: tenant management, system config |
-| `AppPanelProvider` | `/app` | Tenant users: accounting, invoicing, reports |
-
-Panel providers live in `app/Providers/Filament/`.
-
-**AdminPanelProvider uses manual resource registration** — do not rely on auto-discovery. Every resource must be explicitly listed in the `->resources([])` call inside the panel provider.
-
-### Key Directories
-
-```
-app/
-  Filament/
-    Admin/          # Super-admin panel resources/pages/widgets
-    App/            # Tenant panel resources/pages/widgets
-  Models/           # Eloquent models
-  Policies/         # Authorization policies (one per model)
-  Services/         # Business logic (never in controllers or resources)
-  Actions/          # Single-responsibility action classes
-  Enums/            # PHP 8.1+ backed enums for statuses, types
-  Traits/           # Reusable model/class traits
-  Http/
-    Controllers/    # Thin controllers — delegate to Services/Actions
-    Requests/       # Form requests for validation
-config/
-database/
-  migrations/
-  seeders/
-  factories/
-resources/
-  views/
-    reports/        # Report Blade views — use inline style="" only (see PDF section)
-  css/
-  js/
-routes/
-  web.php
-  api.php
-tests/
-  Feature/
-  Unit/
-```
+| Version | Codename | Status | Scope |
+|---|---|---|---|
+| v1.0 | "Asas" | ✅ Complete | Core accounting, AR/AP, payroll, multi-currency |
+| v1.1 | "Niaga" | 🔲 Planned | Fixed Assets, POS, Inventory |
+| v1.2 | "Patuh" | 🔲 Planned | MyInvois live, Billplz live |
+| v2.0 | "Maju" | 🔲 Future | Multi-tenant SaaS |
 
 ---
 
-## Domain Modules
+## 3. TECH STACK
 
-Core accounting modules expected in this project:
-
-- **Chart of Accounts** — 3-level hierarchy, account code range 1000–5000 (see COA section)
-- **Contacts** — customers and suppliers
-- **Invoicing** — sales invoices, credit notes, receipts
-- **Purchases** — bills, debit notes, payments
-- **Banking** — accounts, transactions, reconciliation
-- **Expenses** — expense claims, categories
-- **Payroll** — employee management, EPF/SOCSO/PCB (Malaysian payroll compliance)
-- **Tax** — SST (Sales & Service Tax), e-Invoice (MyInvois/LHDN)
-- **Reports** — P&L, Balance Sheet, Trial Balance, Cash Flow, GST/SST returns
-- **Settings** — company profile, financial year, currencies, tax rates
-
-### Development Phase Rule
-
-**Always verify each module/phase is complete and correct before proceeding to the next.** Do not move on if migrations, seeders, models, resources, or tests for the current phase have unresolved issues.
+| Layer | Technology |
+|---|---|
+| Framework | Laravel 12 |
+| Admin UI | Filament 5.x (latest) |
+| Database | MySQL / MariaDB |
+| PDF | barryvdh/laravel-dompdf |
+| RBAC | Spatie Laravel Permission |
+| Activity Log | Spatie Activitylog v5 |
+| FX Rates | Frankfurter API (free, no key) |
+| Local dev | Laragon 6 |
+| Version control | GitHub (zzude/saga-sme) |
 
 ---
 
-## Chart of Accounts
+## 4. FILAMENT 5.x CRITICAL RULES
 
-- **Account code range:** 1000–5000
-- **Hierarchy:** 3 levels — Category → Group → Account
-  - Level 1 (Category): broad type, e.g. `1000 Assets`
-  - Level 2 (Group): sub-grouping, e.g. `1100 Current Assets`
-  - Level 3 (Account): leaf account used in transactions, e.g. `1110 Cash at Bank`
-- Account codes are unique per company.
-- Only Level 3 accounts are posted to — never post directly to a Category or Group.
-- Account types: `asset`, `liability`, `equity`, `revenue`, `expense`
+> ⚠️ These rules are non-negotiable. Violating them causes FatalErrors.
 
----
-
-## Malaysian Compliance Notes
-
-- **e-Invoice:** Integration with LHDN MyInvois API (mandatory for applicable businesses). Keep e-invoice logic in a dedicated `App\Services\EInvoice` namespace.
-- **SST:** 6% service tax, 10% sales tax — configurable per item/service.
-- **PCB (Potongan Cukai Bulanan):** Monthly tax deduction via Jadual PCB or LHDN e-PCB. Keep tax tables in seeders, update annually.
-- **EPF/SOCSO/EIS:** Rates are tier-based and seeded from official tables. Never hard-code rates — store in `contribution_rates` table.
-- **Currency:** Default `MYR`. Multi-currency support must store `exchange_rate` at time of transaction; never recalculate historical rates.
-- **Date format:** Use `d/m/Y` for display, ISO 8601 (`Y-m-d`) for storage.
-- **Financial year:** Configurable per company (not always Jan–Dec).
-
----
-
-## Coding Conventions
-
-### General
-
-- Follow PSR-12. Run `./vendor/bin/pint` before committing.
-- Use PHP 8.4 features: enums, readonly properties, named arguments, match expressions, property hooks.
-- No logic in Blade views or Filament resource classes — delegate to `Services` or `Actions`.
-- All money values stored as **integers in sen** (e.g. RM 10.50 → `1050`). Use `brick/money` or a `Money` value object for arithmetic. **Never use floats for currency.**
-
-### Money Handling
-
+### 4.1 Namespaces
 ```php
-// CORRECT — store and work in sen (integer)
-$amount = 1050;          // represents RM 10.50
-$display = number_format($amount / 100, 2);  // "10.50"
+// Actions
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
+use Filament\Tables\Actions\Action;      // for table row actions
+use Filament\Tables\Actions\EditAction;  // for table row actions
 
-// WRONG
-$amount = 10.50;         // never store as float
-```
-
-### Models
-
-- Every tenant model must have `company_id` and use the company global scope.
-- Use Eloquent `$casts` for enums, dates, and JSON columns.
-- Define `$fillable` explicitly — avoid `$guarded = []`.
-- Relationships named in camelCase; foreign keys in snake_case.
-
-### Filament 5.x Resource Conventions
-
-These conventions are **mandatory** — they differ from Filament 3/4 patterns.
-
-#### Schema, not Form
-
-```php
-// CORRECT — Filament 5.x
-use Filament\Schemas\Schema;
-
-public function form(Schema $schema): Schema
-{
-    return $schema->components([
-        // ...
-    ]);
-}
-
-// WRONG — old Filament 3/4 pattern, do not use
-use Filament\Forms\Form;
-public function form(Form $form): Form
-{
-    return $form->schema([...]);
-}
-```
-
-#### Component Imports
-
-```php
-// Layout components — import from Filament\Schemas\Components\
+// Schema / Forms
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
 
-// Reactive form utilities — import from Filament\Schemas\Components\Utilities\
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
-
-// Form fields — still from Filament\Forms\Components\
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\DatePicker;
+// Correct form method signature
+public function form(Schema $schema): Schema  // NOT Form $form
+{
+    return $schema->components([...]);         // NOT ->schema([...])
+}
 ```
 
-#### Enum Values in Form Closures (`$get()`)
-
-`$get('field')` returns the **raw backing value** (e.g. `int`) when a user picks a new value in the form, but returns the **enum instance** when Filament fills the form from an existing model record (because the model casts it). Never cast with `(int)` directly — it throws `TypeError` on an enum.
-
+### 4.2 Navigation — Methods NOT Properties
 ```php
-// WRONG — fails when editing an existing record
-$levelValue = (int) $get('level');
+// ✅ CORRECT
+public static function getNavigationGroup(): ?string { return 'Accounting'; }
+public static function getNavigationIcon(): string { return 'heroicon-o-document'; }
+public static function getNavigationSort(): int { return 1; }
 
-// CORRECT — normalise with a private static helper
-private static function levelValue(mixed $level): int
-{
-    return $level instanceof AccountLevel ? $level->value : (int) $level;
-}
-
-// Use in closures:
-->visible(fn (Get $get) => static::levelValue($get('level')) > AccountLevel::Category->value)
-->options(function (Get $get) {
-    $levelValue = static::levelValue($get('level'));
-    // ...
-})
-```
-
-Apply this pattern for any int- or string-backed enum field read via `$get()`.
-
-#### Actions Import
-
-```php
-// CORRECT — top-level Actions namespace
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\CreateAction;
-
-// WRONG — do not import from Tables sub-namespace for page/resource actions
-use Filament\Tables\Actions\EditAction;   // only valid inside table()->actions([])
-```
-
-#### Navigation — Methods, Not Static Properties
-
-```php
-// CORRECT — Filament 5.x uses methods
-public static function getNavigationGroup(): ?string
-{
-    return 'Accounting';
-}
-
-public static function getNavigationLabel(): string
-{
-    return 'Chart of Accounts';
-}
-
-public static function getNavigationIcon(): string
-{
-    return 'heroicon-o-book-open';
-}
-
-// WRONG — static properties are not used in Filament 5
+// ❌ WRONG — causes FatalError (strict UnitEnum|string|null typing)
 protected static ?string $navigationGroup = 'Accounting';
-protected static ?string $navigationLabel = 'Chart of Accounts';
 ```
 
-### Enums
+### 4.3 Table Columns with Computed State
+```php
+// Use getStateUsing() for computed/related data
+TextColumn::make('balance')
+    ->getStateUsing(fn ($record) => $record->calculateBalance()),
+```
+
+---
+
+## 5. SPATIE ACTIVITYLOG V5 RULES
 
 ```php
-// app/Enums/InvoiceStatus.php
-enum InvoiceStatus: string
-{
-    case Draft    = 'draft';
-    case Sent     = 'sent';
-    case Paid     = 'paid';
-    case Overdue  = 'overdue';
-    case Void     = 'void';
-}
-```
+// Correct namespace
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
 
-Cast enums in models. Use enum labels for display; never compare against raw strings.
+// Correct method (NOT dontSubmitEmptyLogs)
+->dontLogEmptyChanges()
 
-### Services
-
-- One service class per domain concept, e.g. `InvoiceService`, `PayrollService`.
-- Services are injected via constructor; do not instantiate with `new` in controllers.
-- Services must not interact with the HTTP layer (no `request()`, no redirects).
-
-### Database
-
-- Every migration must have a `down()` method.
-- Add foreign key constraints. Use `constrained()->cascadeOnDelete()` or `restrictOnDelete()` deliberately.
-- Index columns used in `WHERE` and `ORDER BY` clauses.
-- Use `unsignedBigInteger` for all foreign keys (auto from `foreignId()`).
-- Seeders: production-safe reference data (tax rates, account types) in dedicated seeders; test/demo data in `DatabaseSeeder` only.
-
-### Testing
-
-- Feature tests for all HTTP endpoints and Filament actions.
-- Unit tests for `Services`, `Actions`, and calculation logic.
-- Use `RefreshDatabase` trait; never share state between tests.
-- Factory states for common scenarios (e.g., `Invoice::factory()->paid()->create()`).
-
----
-
-## PDF / Report Views
-
-Report Blade views (used for PDF generation via DomPDF or similar) live in `resources/views/reports/`.
-
-**Always use inline `style=""` attributes — never Tailwind classes — in report views.**
-
-Reason: PDF renderers do not process Tailwind's utility classes. Inline styles are the only reliable way to control layout, font sizes, spacing, colours, and table formatting in generated PDFs.
-
-```blade
-{{-- CORRECT --}}
-<table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-    <thead>
-        <tr style="background-color: #f3f4f6;">
-            <th style="padding: 8px; text-align: left; border-bottom: 1px solid #e5e7eb;">
-                Description
-            </th>
-        </tr>
-    </thead>
-</table>
-
-{{-- WRONG --}}
-<table class="w-full text-sm border-collapse">
-    <thead>
-        <tr class="bg-gray-100">
-            <th class="p-2 text-left border-b border-gray-200">Description</th>
-        </tr>
-    </thead>
-</table>
+// attribute_changes returns Collection, not array
+$activity->changes->get('attributes')  // correct
 ```
 
 ---
 
-## Authorization
+## 6. RBAC SETUP
 
-- Use Laravel Policies — one policy per model, registered in `AuthServiceProvider`.
-- Filament panels use `canAccess()` on panel providers for top-level access control.
-- Use `Gate::before()` to grant `super_admin` all permissions.
-- **Roles (Spatie Permission):** `super_admin`, `admin`, `approver`, `treasurer`, `viewer`
-  - `super_admin` — full system access, cross-tenant
-  - `admin` — full access within their company
-  - `approver` — can approve/reject transactions (invoices, expenses, payroll)
-  - `treasurer` — can view and manage banking/payments
-  - `viewer` — read-only access to reports and records
+| Item | Value |
+|---|---|
+| Package | Spatie Laravel Permission |
+| Gate bypass | `Gate::before` in `AppServiceProvider.php` for `super_admin` |
+| Test user | akaun@demo.com / akaun1234 |
+| Test role | treasurer |
+| Admin user | admin@sagasme.com (super_admin) |
 
 ---
 
-## Environment Variables (key ones)
+## 7. MODULES — v1.0 "ASAS" COMPLETE
 
-```dotenv
-APP_NAME="SAGA SME"
-APP_ENV=local
-APP_URL=http://saga-sme.test
+### 7.1 Accounting Core
+- Chart of Accounts (Malaysian standard, 92 accounts seeded)
+- Accounting Periods (monthly, open/close)
+- Journal Entry Engine (DR=CR validation, Draft→Posted workflow)
+- General Ledger, Trial Balance
 
-DB_CONNECTION=mysql
-DB_DATABASE=saga_sme
+### 7.2 AR / AP
+- Customer + Sales Invoice (post → AR journal)
+- Vendor + Vendor Bill (post → AP journal)
+- Payment recording (AR/AP settlement)
 
-# e-Invoice / MyInvois (LHDN)
-MYINVOIS_BASE_URL=
-MYINVOIS_CLIENT_ID=
-MYINVOIS_CLIENT_SECRET=
-MYINVOIS_ENVIRONMENT=sandbox   # sandbox | production
+### 7.3 Banking
+- Bank Reconciliation (match statement vs journals)
 
-# Mail
-MAIL_MAILER=smtp
+### 7.4 Reports
+- Profit & Loss (period filter)
+- Balance Sheet
+- PDF export (DomPDF)
+- CSV Import (journal bulk upload)
 
-# Localisation
-DEFAULT_CURRENCY=MYR
-DEFAULT_TIMEZONE=Asia/Kuala_Lumpur
-DEFAULT_LOCALE=en_MY
+### 7.5 Compliance
+- SST Module (6% service tax, 10% sales tax)
+- MyInvois scaffold (LHDN e-Invoice — pending live credentials)
+- Billplz payment gateway scaffold (pending sandbox account)
+
+### 7.6 HR / Payroll
+- Employee management
+- Payroll with full Malaysian statutory: KWSP, SOCSO, EIS, PCB
+- Leave Management
+- Cash Advance
+
+### 7.7 Multi-Currency
+- Base currency: MYR
+- Active: USD, SGD
+- Auto rate fetch: Frankfurter API
+- Schema: `base_*` and `foreign_*` columns on relevant tables
+
+### 7.8 Quotation Module
+- Statuses: Draft → Sent → Accepted → Convert to Invoice
+- Revision support: QT-YYYY-NNNNN-R1 prefix
+- Commit: 65224f6
+
+---
+
+## 8. KEY DATABASE NOTES
+
+```
+DB name      : saga_sme
+Payroll      : payroll_lines (NOT payroll_items)
+             : payroll_periods (separate table)
+Invoices     : posted_at column (NOT is_posted boolean)
+FX columns   : base_amount, foreign_amount, exchange_rate
 ```
 
 ---
 
-## What to Avoid
+## 9. PENDING ITEMS (v1.0 → v1.1)
 
-- Do not use `Form $form` / `->schema([])` — use `Schema $schema` / `->components([])` (Filament 5).
-- Do not use static navigation properties (`$navigationGroup`, `$navigationLabel`) — use methods.
-- Do not import actions from `Filament\Tables\Actions\` for page-level actions — use `Filament\Actions\`.
-- Do not import `Section` or `Grid` from `Filament\Forms\Components\` — use `Filament\Schemas\Components\`.
-- Do not import `Get` or `Set` from `Filament\Forms\` — use `Filament\Schemas\Components\Utilities\Get` and `Set`.
-- Do not put business logic in Filament resource `form()` / `table()` closures.
-- Do not store money as floats — always integers in sen.
-- Do not use Tailwind classes in report/PDF Blade views — use inline `style=""` only.
-- Do not rely on Filament auto-discovery for AdminPanel resources — register manually.
-- Do not use `dd()` / `dump()` — use `Log::debug()` during development; remove before committing.
-- Do not bypass company scope with `withoutGlobalScopes()` unless in a super-admin context with explicit justification.
-- Do not use raw SQL unless Eloquent cannot express the query; document why.
-- Do not hard-code Malaysian tax/contribution rates — they change annually.
-- Do not proceed to the next module/phase until the current one is verified complete.
+| # | Item | Notes |
+|---|---|---|
+| 1 | Billplz sandbox | Needs Billplz account |
+| 2 | MyInvois live | Needs LHDN sandbox credentials |
+| 3 | Quotation: qty/unit display | Minor UI bug |
+| 4 | Quotation: ringkasan RM 0.00 | Calculation bug |
+| 5 | Quotation: PDF route | Route not wired |
+
+---
+
+## 10. DEV WORKFLOW
+
+```
+Edit local Laragon → Test → Commit → Push → (no direct VPS edit for SAGA)
+```
+
+```bash
+# Run locally
+cd C:\laragon6\www\saga-sme
+php artisan serve        # or via Laragon virtual host
+
+# Common commands
+php artisan migrate
+php artisan db:seed --class=DemoDataSeeder
+php artisan optimize:clear
+php artisan filament:assets
+```
+
+---
+
+## 11. CODING STANDARDS
+
+1. **One module at a time** — never mix unrelated changes in one commit
+2. **Double-entry always** — every financial transaction must DR = CR
+3. **Multi-tenant ready** — all models must be scoped by `company_id`
+4. **Inline styles for PDF** — Tailwind unreliable in DomPDF blade views; use `style=""` attributes
+5. **Malaysian context** — currency MYR, dates DD/MM/YYYY, tax rates per LHDN
+
+---
+
+## 12. SKILL FILES
+
+See `.claude/skills/` for detailed context on specific modules:
+
+| File | Covers |
+|---|---|
+| `accounting.md` | COA structure, journal engine, period rules |
+| `ar-ap.md` | Invoice/Bill flow, settlement logic |
+| `payroll.md` | KWSP/SOCSO/EIS/PCB rates, payroll_lines schema |
+| `multi-currency.md` | FX columns, Frankfurter API integration |
+| `compliance.md` | SST, MyInvois, Billplz scaffold status |
+| `reports.md` | P&L, Balance Sheet, DomPDF patterns |
+
+---
+
+*SAGA SME — Built for Malaysian businesses, by Sabahans.* 🇲🇾
