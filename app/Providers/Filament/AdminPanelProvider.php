@@ -29,8 +29,8 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->colors([
-                'primary' => Color::Blue,
-            ])
+                'primary' => Color::Blue,                
+            ])           
             ->brandName('SAGA SME — Admin')
             // Manual resource registration — do not use discoverResources()
             ->resources([
@@ -50,6 +50,8 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Resources\VirementResource::class,
                 \App\Filament\Resources\SupplementaryBudgetResource::class,
                 \App\Filament\Resources\GovernmentBankAccountResource::class,
+                \App\Filament\Resources\AssetCategoryResource::class,
+                \App\Filament\Resources\FixedAssetResource::class,            
             ])
             ->pages([
                 \App\Filament\Pages\ActivityLog::class,
