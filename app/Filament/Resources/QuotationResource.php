@@ -131,10 +131,9 @@ class QuotationResource extends Resource
                         ->label('')
                         ->schema([
                             Grid::make(12)->schema([
-                                TextInput::make('line_no')
+                                Placeholder::make('line_no')
                                     ->label('No.')
-                                    ->disabled()
-                                    ->dehydrated(false)
+                                    ->content(fn ($get) => $get('line_no') ?? '-')
                                     ->columnSpan(1),
 
                                 TextInput::make('description')
@@ -238,23 +237,23 @@ class QuotationResource extends Resource
                         ->default(30)
                         ->suffix('hari'),
 
-                    TextInput::make('subtotal')
+                    Placeholder::make('subtotal')
                         ->label('Subtotal (RM)')
-                        ->disabled()
-                        ->dehydrated(false)
-                        ->prefix('RM'),
+                        ->content(fn ($record) => $record
+                            ? 'RM ' . number_format($record->subtotal, 2)
+                            : 'RM 0.00'),
 
-                    TextInput::make('discount_amount')
+                    Placeholder::make('discount_amount')
                         ->label('Diskaun (RM)')
-                        ->disabled()
-                        ->dehydrated(false)
-                        ->prefix('RM'),
+                        ->content(fn ($record) => $record
+                            ? 'RM ' . number_format($record->discount_amount, 2)
+                            : 'RM 0.00'),
 
-                    TextInput::make('total_amount')
+                    Placeholder::make('total_amount')
                         ->label('JUMLAH KESELURUHAN (RM)')
-                        ->disabled()
-                        ->dehydrated(false)
-                        ->prefix('RM'),
+                        ->content(fn ($record) => $record
+                            ? 'RM ' . number_format($record->total_amount, 2)
+                            : 'RM 0.00'),
                 ]),
 
             Section::make('Terma & Catatan')
