@@ -51,7 +51,11 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Resources\SupplementaryBudgetResource::class,
                 \App\Filament\Resources\GovernmentBankAccountResource::class,
                 \App\Filament\Resources\AssetCategoryResource::class,
-                \App\Filament\Resources\FixedAssetResource::class,            
+                \App\Filament\Resources\FixedAssetResource::class, 
+                // ── Klasifikasi Kerajaan ─────────────────────────────────
+                \App\Filament\Resources\PtjResource::class,
+                \App\Filament\Resources\ExpenditureObjectResource::class,
+                \App\Filament\Resources\RevenueCodeResource::class,           
             ])
             ->pages([
                 \App\Filament\Pages\ActivityLog::class,
