@@ -40,7 +40,7 @@ class CompaniesTable
                     ->placeholder('No Plan'),
                 TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn ($state): string => match (is_string($state) ? $state : $state->value) {
                         'active'    => 'success',
                         'draft'     => 'gray',
                         'suspended' => 'danger',
