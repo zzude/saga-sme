@@ -252,7 +252,7 @@ class QuotationResource extends Resource
                     Placeholder::make('total_amount')
                         ->label('JUMLAH KESELURUHAN (RM)')
                         ->content(fn ($record) => $record
-                            ? 'RM ' . number_format($record->total_amount, 2)
+                            ? new HtmlString('<span class="font-semibold text-primary-600">RM ' . number_format($record->total_amount, 2) . '</span>')
                             : 'RM 0.00'),
                 ]),
 

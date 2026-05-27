@@ -12,6 +12,12 @@ class ViewQuotation extends ViewRecord
 {
     protected static string $resource = QuotationResource::class;
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $data['items'] = $this->record->items->map->toArray()->all();
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         return [
