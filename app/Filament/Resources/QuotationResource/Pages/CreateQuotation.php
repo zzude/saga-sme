@@ -5,10 +5,22 @@ namespace App\Filament\Resources\QuotationResource\Pages;
 use App\Filament\Resources\QuotationResource;
 use App\Models\Quotation;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Schemas\Schema;
 
 class CreateQuotation extends CreateRecord
 {
     protected static string $resource = QuotationResource::class;
+
+    /**
+     * Provide a concrete model instance instead of a class string so that
+     * Filament's getModelInstance() never falls through to app($classString).
+     * On CREATE, defaultForm() passes the class string, which causes the
+     * container to fire resolution callbacks in a recursive spiral.
+     */
+    public function defaultForm(Schema $schema): Schema
+    {
+        return parent::defaultForm($schema)->model(new Quotation());
+    }
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
