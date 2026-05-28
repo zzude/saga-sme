@@ -276,6 +276,87 @@ class QuotationResource extends Resource
         ]);
     }
 
+
+    // -------------------------------------------------------------------------
+    // INFOLIST (View Page)
+    // -------------------------------------------------------------------------
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema->components([
+
+            Section::make('Maklumat Sebut Harga')
+                ->columns(3)
+                ->schema([
+                    \Filament\Infolists\Components\TextEntry::make('quotation_number')->label('No. Sebut Harga'),
+                    \Filament\Infolists\Components\TextEntry::make('revision')->label('Semakan')
+                        ->formatStateUsing(fn ($state) => "R{$state}"),
+                    \Filament\Infolists\Components\TextEntry::make('status')->label('Status')
+                        ->badge()
+                        ->color(fn ($state) => match($state) {
+                            'draft'    => 'gray',
+                            'sent'     => 'info',
+                            'accepted' => 'success',
+                            'rejected' => 'danger',
+                            default    => 'gray',
+                        }),
+                    \Filament\Infolists\Components\TextEntry::make('quotation_date')->label('Tarikh')->date('d/m/Y'),
+                    \Filament\Infolists\Components\TextEntry::make('valid_until')->label('Sah Hingga')->date('d/m/Y'),
+                    \Filament\Infolists\Components\TextEntry::make('payment_terms_days')->label('Terma Bayaran')->suffix(' hari'),
+                ]),
+
+            Section::make('Pelanggan')
+                ->columns(2)
+                ->schema([
+                    \Filament\Infolists\Components\TextEntry::make('customer.name')->label('Nama Pelanggan'),
+                    \Filament\Infolists\Components\TextEntry::make('reference_number')->label('No. Rujukan')->placeholder('-'),
+                ]),
+
+            Section::make('Senarai Item')
+                ->schema([
+                    \Filament\Infolists\Components\RepeatableEntry::make('items')
+                        ->label('')
+                        ->schema([
+                            \Filament\Schemas\Components\Grid::make(8)->schema([
+                                \Filament\Infolists\Components\TextEntry::make('line_no')->label('No.')->columnSpan(1),
+                                \Filament\Infolists\Components\TextEntry::make('description')->label('Penerangan')->columnSpan(2),
+                                \Filament\Infolists\Components\TextEntry::make('unit_of_measure')->label('Unit')->columnSpan(1),
+                                \Filament\Infolists\Components\TextEntry::make('quantity')->label('Kuantiti')->numeric(decimalPlaces: 2)->columnSpan(1),
+                                \Filament\Infolists\Components\TextEntry::make('unit_price')->label('Harga Unit (RM)')->numeric(decimalPlaces: 2)->columnSpan(1),
+                                \Filament\Infolists\Components\TextEntry::make('discount_percent')->label('Diskaun %')->suffix('%')->columnSpan(1),
+                                \Filament\Infolists\Components\TextEntry::make('total_amount')->label('Jumlah (RM)')
+                                    ->formatStateUsing(fn ($state) => 'RM ' . number_format($state, 2))
+                                    ->weight(\Filament\Support\Enums\FontWeight::Bold)
+                                    ->color('primary')
+                                    ->columnSpan(1),
+                            ]),
+                        ]),
+                ]),
+
+            Section::make('Ringkasan Jumlah')
+                ->columns(3)
+                ->schema([
+                    \Filament\Infolists\Components\TextEntry::make('subtotal')
+                        ->label('Subtotal (RM)')
+                        ->formatStateUsing(fn ($state) => 'RM ' . number_format($state, 2)),
+                    \Filament\Infolists\Components\TextEntry::make('discount_amount')
+                        ->label('Diskaun (RM)')
+                        ->formatStateUsing(fn ($state) => 'RM ' . number_format($state, 2)),
+                    \Filament\Infolists\Components\TextEntry::make('total_amount')
+                        ->label('JUMLAH KESELURUHAN (RM)')
+                        ->formatStateUsing(fn ($state) => 'RM ' . number_format($state, 2))
+                        ->weight(\Filament\Support\Enums\FontWeight::Bold)
+                                                ->color('primary'),
+                ]),
+
+            Section::make('Terma & Catatan')
+                ->columns(2)
+                ->schema([
+                    \Filament\Infolists\Components\TextEntry::make('terms_conditions')->label('Terma & Syarat')->placeholder('-'),
+                    \Filament\Infolists\Components\TextEntry::make('remarks')->label('Catatan')->placeholder('-'),
+                ]),
+        ]);
+    }
+
     // -------------------------------------------------------------------------
     // TABLE
     // -------------------------------------------------------------------------
