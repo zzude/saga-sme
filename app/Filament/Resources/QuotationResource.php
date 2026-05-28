@@ -46,7 +46,7 @@ class QuotationResource extends Resource
 
     public static function getNavigationSort(): int
     {
-        return 1; // before Invoice
+        return 1;
     }
 
     public static function getModelLabel(): string
@@ -100,7 +100,7 @@ class QuotationResource extends Resource
                         ->searchable()
                         ->preload()
                         ->required()
-                        ->reactive()
+                        ->live()
                         ->afterStateUpdated(function ($state, callable $set) {
                             if ($state) {
                                 $customer = Customer::find($state);
@@ -155,14 +155,12 @@ class QuotationResource extends Resource
                                     ->numeric()
                                     ->required()
                                     ->default(1)
-                                    ->reactive()
                                     ->columnSpan(1),
 
                                 TextInput::make('unit_price')
                                     ->label('Harga Unit (RM)')
                                     ->numeric()
                                     ->required()
-                                    ->reactive()
                                     ->columnSpan(2),
 
                                 TextInput::make('discount_percent')
@@ -170,13 +168,11 @@ class QuotationResource extends Resource
                                     ->numeric()
                                     ->default(0)
                                     ->suffix('%')
-                                    ->reactive()
                                     ->columnSpan(1),
 
                                 Toggle::make('is_sst_applicable')
                                     ->label('SST')
                                     ->default(false)
-                                    ->reactive()
                                     ->columnSpan(1),
 
                                 TextInput::make('sst_rate')
@@ -184,36 +180,13 @@ class QuotationResource extends Resource
                                     ->numeric()
                                     ->default(6)
                                     ->suffix('%')
-                                    ->hidden(fn ($get) => !$get('is_sst_applicable'))
                                     ->columnSpan(1),
-
-                                Placeholder::make('total_amount')
-                                    ->label('Jumlah (RM)')
-                                    ->content(function ($get) {
-                                        $qty      = (float) $get('quantity');
-                                        $price    = (float) $get('unit_price');
-                                        $disc     = (float) $get('discount_percent');
-                                        $sstOn    = (bool)  $get('is_sst_applicable');
-                                        $sstRate  = (float) $get('sst_rate') ?: 6;
-
-                                        $gross    = $qty * $price;
-                                        $discAmt  = $gross * ($disc / 100);
-                                        $net      = $gross - $discAmt;
-                                        $sst      = $sstOn ? $net * ($sstRate / 100) : 0;
-                                        $total    = $net + $sst;
-
-                                        return new HtmlString(
-                                            '<span class="font-semibold text-primary-600">RM ' . number_format($total, 2) . '</span>'
-                                        );
-                                    })
-                                    ->columnSpan(2),
                             ]),
                         ])
                         ->orderColumn('line_no')
                         ->addActionLabel('+ Tambah Item')
-                        ->reorderable()
                         ->collapsible()
-                        ->defaultItems(1),
+                        ->defaultItems(0),
                 ]),
 
             Section::make('Ringkasan Jumlah')
@@ -221,15 +194,13 @@ class QuotationResource extends Resource
                 ->schema([
                     Toggle::make('sst_applicable')
                         ->label('SST Dikenakan?')
-                        ->default(false)
-                        ->reactive(),
+                        ->default(false),
 
                     TextInput::make('sst_rate')
                         ->label('Kadar SST %')
                         ->numeric()
                         ->default(6)
-                        ->suffix('%')
-                        ->hidden(fn ($get) => !$get('sst_applicable')),
+                        ->suffix('%'),
 
                     TextInput::make('payment_terms_days')
                         ->label('Terma Pembayaran (hari)')
@@ -276,85 +247,12 @@ class QuotationResource extends Resource
         ]);
     }
 
-
     // -------------------------------------------------------------------------
     // INFOLIST (View Page)
     // -------------------------------------------------------------------------
     public static function infolist(Schema $schema): Schema
     {
-        return $schema->components([
-
-            Section::make('Maklumat Sebut Harga')
-                ->columns(3)
-                ->schema([
-                    \Filament\Infolists\Components\TextEntry::make('quotation_number')->label('No. Sebut Harga'),
-                    \Filament\Infolists\Components\TextEntry::make('revision')->label('Semakan')
-                        ->formatStateUsing(fn ($state) => "R{$state}"),
-                    \Filament\Infolists\Components\TextEntry::make('status')->label('Status')
-                        ->badge()
-                        ->color(fn ($state) => match($state) {
-                            'draft'    => 'gray',
-                            'sent'     => 'info',
-                            'accepted' => 'success',
-                            'rejected' => 'danger',
-                            default    => 'gray',
-                        }),
-                    \Filament\Infolists\Components\TextEntry::make('quotation_date')->label('Tarikh')->date('d/m/Y'),
-                    \Filament\Infolists\Components\TextEntry::make('valid_until')->label('Sah Hingga')->date('d/m/Y'),
-                    \Filament\Infolists\Components\TextEntry::make('payment_terms_days')->label('Terma Bayaran')->suffix(' hari'),
-                ]),
-
-            Section::make('Pelanggan')
-                ->columns(2)
-                ->schema([
-                    \Filament\Infolists\Components\TextEntry::make('customer.name')->label('Nama Pelanggan'),
-                    \Filament\Infolists\Components\TextEntry::make('reference_number')->label('No. Rujukan')->placeholder('-'),
-                ]),
-
-            Section::make('Senarai Item')
-                ->schema([
-                    \Filament\Infolists\Components\RepeatableEntry::make('items')
-                        ->label('')
-                        ->schema([
-                            \Filament\Schemas\Components\Grid::make(8)->schema([
-                                \Filament\Infolists\Components\TextEntry::make('line_no')->label('No.')->columnSpan(1),
-                                \Filament\Infolists\Components\TextEntry::make('description')->label('Penerangan')->columnSpan(2),
-                                \Filament\Infolists\Components\TextEntry::make('unit_of_measure')->label('Unit')->columnSpan(1),
-                                \Filament\Infolists\Components\TextEntry::make('quantity')->label('Kuantiti')->numeric(decimalPlaces: 2)->columnSpan(1),
-                                \Filament\Infolists\Components\TextEntry::make('unit_price')->label('Harga Unit (RM)')->numeric(decimalPlaces: 2)->columnSpan(1),
-                                \Filament\Infolists\Components\TextEntry::make('discount_percent')->label('Diskaun %')->suffix('%')->columnSpan(1),
-                                \Filament\Infolists\Components\TextEntry::make('total_amount')->label('Jumlah (RM)')
-                                    ->formatStateUsing(fn ($state) => 'RM ' . number_format($state, 2))
-                                    ->weight(\Filament\Support\Enums\FontWeight::Bold)
-                                    ->color('primary')
-                                    ->columnSpan(1),
-                            ]),
-                        ]),
-                ]),
-
-            Section::make('Ringkasan Jumlah')
-                ->columns(3)
-                ->schema([
-                    \Filament\Infolists\Components\TextEntry::make('subtotal')
-                        ->label('Subtotal (RM)')
-                        ->formatStateUsing(fn ($state) => 'RM ' . number_format($state, 2)),
-                    \Filament\Infolists\Components\TextEntry::make('discount_amount')
-                        ->label('Diskaun (RM)')
-                        ->formatStateUsing(fn ($state) => 'RM ' . number_format($state, 2)),
-                    \Filament\Infolists\Components\TextEntry::make('total_amount')
-                        ->label('JUMLAH KESELURUHAN (RM)')
-                        ->formatStateUsing(fn ($state) => 'RM ' . number_format($state, 2))
-                        ->weight(\Filament\Support\Enums\FontWeight::Bold)
-                                                ->color('primary'),
-                ]),
-
-            Section::make('Terma & Catatan')
-                ->columns(2)
-                ->schema([
-                    \Filament\Infolists\Components\TextEntry::make('terms_conditions')->label('Terma & Syarat')->placeholder('-'),
-                    \Filament\Infolists\Components\TextEntry::make('remarks')->label('Catatan')->placeholder('-'),
-                ]),
-        ]);
+        return \App\Filament\Resources\QuotationResource\Schemas\QuotationInfolist::configure($schema);
     }
 
     // -------------------------------------------------------------------------
@@ -430,7 +328,6 @@ class QuotationResource extends Resource
         return [
             'index'  => Pages\ListQuotations::route('/'),
             'create' => Pages\CreateQuotation::route('/create'),
-            
             'view'   => Pages\ViewQuotation::route('/{record}'),
             'edit'   => Pages\EditQuotation::route('/{record}/edit'),
         ];
