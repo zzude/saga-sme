@@ -27,6 +27,7 @@ class DemoDataSeeder extends Seeder
     private array $periods    = [];  // 'YYYY-MM' => accounting_period_id
     private array $pPeriods   = [];  // 'YYYY-MM' => payroll_period_id
     private array $leaveTypes = [];  // slug => leave_type_id
+    private array $assetCategories = [];  // slug => asset_category_id
 
     private const SST      = 8.00;
     private const FX_MAR25 = 4.4650;
@@ -60,8 +61,13 @@ class DemoDataSeeder extends Seeder
         DB::table('customers')->truncate();
         DB::table('accounting_periods')->truncate();
         DB::table('journal_lines')->truncate();
+        DB::table('journal_lines')->truncate();
         DB::table('journal_headers')->truncate();
+        DB::table('fixed_assets')->truncate();
+        DB::table('asset_categories')->truncate();
+        DB::table('items')->truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        DB::table('payroll_gl_mappings')->truncate();      
         $this->command->info('   ↳ Truncate selesai.');
 
         $this->loadAccounts();
@@ -71,7 +77,10 @@ class DemoDataSeeder extends Seeder
         $this->seedVendors();
         $this->seedInvoices();
         $this->seedBills();
+        $this->categories();
+        $this->seedItems();
         $this->seedEmployees();
+        $this->seedPayrollGlMappings();
         $this->seedLeaveTypes();
         $this->seedPayrollPeriodsAndRuns();
         $this->seedStaffLoans();
@@ -548,6 +557,453 @@ class DemoDataSeeder extends Seeder
     }
 
     // ════════════════════════════════════════════════════════════════
+    // NEW-1. ASSET CATEGORIES + FIXED ASSETS
+    // ════════════════════════════════════════════════════════════════
+    private function categories(): void
+    {
+        // ── Asset Categories ─────────────────────────────────────────
+        // Columns: company_id, name, useful_life_years, depreciation_method,
+        //          asset_account_id, accumulated_depreciation_account_id,
+        //          depreciation_expense_account_id, is_active
+        $categories = [
+            'it_hardware'  => ['IT Hardware',         4, 'straight_line',    '1210', '1250', '5510'],
+            'furniture'    => ['Furniture & Fittings', 8, 'straight_line',    '1240', '1280', '5540'],
+            'vehicles'     => ['Motor Vehicles',       5, 'reducing_balance', '1220', '1260', '5520'],
+            'office_equip' => ['Office Equipment',     5, 'straight_line',    '1230', '1270', '5530'],
+        ];
+
+        foreach ($categories as $slug => [$name, $life, $method, $assetCode, $accumCode, $expCode]) {
+            $this->assetCategories[$slug] = DB::table('asset_categories')->insertGetId([
+                'company_id'                            => $this->companyId,
+                'name'                                  => $name,
+                'useful_life_years'                     => $life,
+                'depreciation_method'                   => $method,
+                'asset_account_id'                      => $this->acct($assetCode),
+                'accumulated_depreciation_account_id'   => $this->acct($accumCode),
+                'depreciation_expense_account_id'       => $this->acct($expCode),
+                'is_active'                             => true,
+                'created_at'                            => now(), 'updated_at' => now(),
+            ]);
+        }
+        $this->command->info('   ↳ Asset categories: ' . count($this->assetCategories));
+
+        // ── Fixed Assets ─────────────────────────────────────────────
+        // Format: [asset_no, name, description, category_slug, purchase_date,
+        //          purchase_amount, salvage_value, useful_life_years,
+        //          depreciation_method, vendor_idx (null=no vendor),
+        //          location, assigned_to, status]
+        //
+        // Book value & accumulated depreciation calculated from purchase_date to now.
+        $assets = [
+            // ── IT Hardware ──────────────────────────────────────────
+            [
+                'FA-2023-001',
+                'Dell Latitude 5540 Laptop (Ahmad)',
+                'Laptop utama CEO — Intel Core i5, 16GB RAM, 512GB SSD',
+                'it_hardware', '2023-03-01', 5800.00, 500.00, 4, 'straight_line',
+                0, 'HQ – Bilik Pengurusan', 'Ahmad Fadzillah bin Kamarudin', 'active',
+            ],
+            [
+                'FA-2023-002',
+                'Dell Latitude 5540 Laptop (Siti)',
+                'Laptop Pengurus Kewangan — Intel Core i5, 16GB RAM, 512GB SSD',
+                'it_hardware', '2023-03-01', 5800.00, 500.00, 4, 'straight_line',
+                0, 'HQ – Bilik Kewangan', 'Siti Norzahra binti Azman', 'active',
+            ],
+            [
+                'FA-2023-003',
+                'Dell Latitude 5540 Laptop (Mohd Rizal)',
+                'Laptop Pengurus Projek — Intel Core i5, 16GB RAM, 512GB SSD',
+                'it_hardware', '2023-03-01', 5800.00, 500.00, 4, 'straight_line',
+                0, 'HQ – Bilik Operasi', 'Mohd Rizal bin Othman', 'active',
+            ],
+            [
+                'FA-2025-001',
+                'Dell Latitude 5540 Laptop (Lim Siew Chee)',
+                'Laptop Jurutera Kanan — Intel Core i7, 32GB RAM, 1TB SSD',
+                'it_hardware', '2025-02-01', 5800.00, 500.00, 4, 'straight_line',
+                0, 'HQ – Bilik Kejuruteraan', 'Lim Siew Chee', 'active',
+            ],
+            [
+                'FA-2025-002',
+                'Dell Latitude 5540 Laptop (Nabilah)',
+                'Laptop Jurutera Perisian',
+                'it_hardware', '2025-02-01', 5800.00, 500.00, 4, 'straight_line',
+                0, 'HQ – Bilik Kejuruteraan', 'Nabilah binti Zainal', 'active',
+            ],
+            [
+                'FA-2025-003',
+                'Dell Latitude 5540 Laptop (Rajan)',
+                'Laptop Penganalisis Sistem',
+                'it_hardware', '2025-02-01', 5800.00, 500.00, 4, 'straight_line',
+                0, 'HQ – Bilik Kejuruteraan', 'Rajan a/l Krishnan', 'active',
+            ],
+            [
+                'FA-2025-004',
+                'Dell PowerEdge T150 Server',
+                'Server fizikal on-premise — Intel Xeon E-2300, 32GB ECC RAM, 2×2TB HDD RAID-1',
+                'it_hardware', '2025-06-10', 12800.00, 1000.00, 4, 'straight_line',
+                0, 'HQ – Bilik Server', null, 'active',
+            ],
+            [
+                'FA-2023-004',
+                'Cisco SG350 Network Switch (24-port)',
+                'Switch rangkaian utama pejabat',
+                'it_hardware', '2023-06-01', 3200.00, 200.00, 4, 'straight_line',
+                0, 'HQ – Bilik Server', null, 'active',
+            ],
+            [
+                'FA-2023-005',
+                'Fortinet FortiGate 60F Firewall',
+                'Firewall perimeter pejabat',
+                'it_hardware', '2023-06-01', 4500.00, 300.00, 4, 'straight_line',
+                0, 'HQ – Bilik Server', null, 'active',
+            ],
+            [
+                'FA-2024-001',
+                'Canon imageRUNNER Advance Photocopier',
+                'Mesin fotostat multifungsi (cetak/scan/fax)',
+                'office_equip', '2024-01-15', 8500.00, 500.00, 5, 'straight_line',
+                null, 'HQ – Bilik Pentadbiran', null, 'active',
+            ],
+            // ── Furniture ────────────────────────────────────────────
+            [
+                'FA-2023-006',
+                'Set Perabot Pejabat (Meja + Kerusi × 10)',
+                'Set meja kerja dan kerusi ergonomik untuk 10 staf',
+                'furniture', '2023-01-15', 18000.00, 1000.00, 8, 'straight_line',
+                null, 'HQ – Ruang Kerja Am', null, 'active',
+            ],
+            [
+                'FA-2023-007',
+                'Set Perabot Bilik Mesyuarat',
+                'Meja mesyuarat panjang + 12 kerusi + papan putih',
+                'furniture', '2023-01-15', 12000.00, 800.00, 8, 'straight_line',
+                null, 'HQ – Bilik Mesyuarat', null, 'active',
+            ],
+            [
+                'FA-2023-008',
+                'Kabinet Fail & Almari Besi × 6',
+                'Kabinet fail logam dengan kunci untuk simpanan dokumen',
+                'furniture', '2023-02-01', 4800.00, 300.00, 8, 'straight_line',
+                null, 'HQ – Ruang Kerja Am', null, 'active',
+            ],
+            // ── Vehicles ─────────────────────────────────────────────
+            [
+                'FA-2023-009',
+                'Toyota Hilux 2.4G (WPQ 1234)',
+                'Kenderaan operasi syarikat — Toyota Hilux 2.4G AT 4×4 (Hitam)',
+                'vehicles', '2023-04-01', 118000.00, 15000.00, 5, 'reducing_balance',
+                null, 'HQ – Tempat Letak Kenderaan', 'Ahmad Fadzillah bin Kamarudin', 'active',
+            ],
+            [
+                'FA-2024-002',
+                'Perodua Myvi 1.5 AV (WPR 5678)',
+                'Kenderaan operasi — Perodua Myvi 1.5 AV CVT (Putih)',
+                'vehicles', '2024-03-15', 52000.00, 8000.00, 5, 'reducing_balance',
+                null, 'HQ – Tempat Letak Kenderaan', 'Mohd Rizal bin Othman', 'active',
+            ],
+            // ── Disposed example ─────────────────────────────────────
+            [
+                'FA-2022-001',
+                'HP EliteBook 840 Laptop (Dilupuskan)',
+                'Laptop lama — dilupuskan setelah 3 tahun guna (rosak motherboard)',
+                'it_hardware', '2022-01-10', 4200.00, 200.00, 4, 'straight_line',
+                null, null, null, 'disposed',
+            ],
+        ];
+
+        $seq = 1;
+        foreach ($assets as $asset) {
+            [
+                $assetNo, $name, $desc, $catSlug, $purchaseDate,
+                $purchaseAmt, $salvage, $life, $method,
+                $vendorIdx, $location, $assignedTo, $status,
+            ] = $asset;
+
+            // ── Calculate accumulated depreciation ───────────────────
+            $purchasedAt  = Carbon::parse($purchaseDate);
+            $disposedAt   = $status === 'disposed'
+                ? $purchasedAt->copy()->addYears(3)
+                : now();
+            $monthsUsed   = (int) $purchasedAt->diffInMonths($disposedAt);
+
+            if ($method === 'straight_line') {
+                $annualDep   = ($purchaseAmt - $salvage) / $life;
+                $monthlyDep  = $annualDep / 12;
+                $accumDep    = min(round($monthlyDep * $monthsUsed, 2), $purchaseAmt - $salvage);
+            } else {
+                // Reducing balance — 20% per year applied monthly
+                $rate        = 0.20 / 12;
+                $bv          = $purchaseAmt;
+                for ($m = 0; $m < $monthsUsed; $m++) {
+                    $bv -= $bv * $rate;
+                }
+                $bv       = max(round($bv, 2), $salvage);
+                $accumDep = round($purchaseAmt - $bv, 2);
+            }
+
+            $bookValue = round($purchaseAmt - $accumDep, 2);
+
+            DB::table('fixed_assets')->insert([
+                'company_id'                => $this->companyId,
+                'asset_no'                  => $assetNo,
+                'name'                      => $name,
+                'description'               => $desc,
+                'category_id'               => $this->assetCategories[$catSlug],
+                'purchase_date'             => $purchaseDate,
+                'purchase_amount'           => $purchaseAmt,
+                'salvage_value'             => $salvage,
+                'useful_life_years'         => $life,
+                'depreciation_method'       => $method,
+                'vendor_id'                 => $vendorIdx !== null ? ($this->vendors[$vendorIdx] ?? null) : null,
+                'vendor_invoice_no'         => null,
+                'purchase_journal_id'       => null,
+                'location'                  => $location,
+                'assigned_to'               => $assignedTo,
+                'current_book_value'        => $bookValue,
+                'accumulated_depreciation'  => $accumDep,
+                'status'                    => $status,
+                'disposed_at'               => $status === 'disposed'
+                    ? $purchasedAt->copy()->addYears(3)->toDateString()
+                    : null,
+                'disposal_proceeds'         => $status === 'disposed' ? 0.00 : null,
+                'disposal_journal_id'       => null,
+                'created_at'                => now(), 'updated_at' => now(),
+            ]);
+
+            $seq++;
+        }
+
+        $this->command->info('   ↳ Fixed assets: ' . count($assets) . ' aset (termasuk 1 dilupuskan).');
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // NEW-2. INVENTORY ITEMS (Product / Service / Bundle catalog)
+    // ════════════════════════════════════════════════════════════════
+    // items columns:
+    //   id, company_id, code, name, description, type (product/service/bundle),
+    //   selling_price, cost_price, unit_of_measure, is_sst_applicable, sst_rate,
+    //   track_inventory, current_stock, reorder_level,
+    //   income_account_id, expense_account_id, category, is_active
+    // ════════════════════════════════════════════════════════════════
+    private function seedItems(): void
+    {
+        // Format: [code, name, description, type, selling, cost, uom,
+        //          sst, sst_rate, track_stock, stock, reorder,
+        //          income_code, expense_code, category]
+        $items = [
+
+            // ── SERVICES ─────────────────────────────────────────────
+            [
+                'SVC-001',
+                'Pembangunan Perisian Custom',
+                'Perkhidmatan pembangunan aplikasi web/mudah alih mengikut keperluan pelanggan',
+                'service', 0.00, 0.00, 'Jam',
+                true, 8.0, false, 0, 0,
+                '4120', '5110', 'Perkhidmatan IT',
+            ],
+            [
+                'SVC-002',
+                'Sokongan & Penyelenggaraan IT',
+                'Perkhidmatan penyelenggaraan sistem dan sokongan teknikal bulanan',
+                'service', 2000.00, 0.00, 'Bulan',
+                true, 8.0, false, 0, 0,
+                '4120', '5110', 'Perkhidmatan IT',
+            ],
+            [
+                'SVC-003',
+                'Perundingan Transformasi Digital',
+                'Khidmat nasihat dan perundingan transformasi digital organisasi',
+                'service', 0.00, 0.00, 'Hari',
+                true, 8.0, false, 0, 0,
+                '4120', '5110', 'Perkhidmatan IT',
+            ],
+            [
+                'SVC-004',
+                'Latihan IT & Bengkel Teknikal',
+                'Latihan kepada pengguna akhir dan bengkel teknikal untuk staf pelanggan',
+                'service', 1500.00, 0.00, 'Sesi',
+                true, 8.0, false, 0, 0,
+                '4120', '5110', 'Perkhidmatan IT',
+            ],
+            [
+                'SVC-005',
+                'Ujian Penembusan (Penetration Testing)',
+                'Penilaian keselamatan siber — vulnerability assessment dan penetration testing',
+                'service', 0.00, 0.00, 'Projek',
+                true, 8.0, false, 0, 0,
+                '4120', '5110', 'Keselamatan Siber',
+            ],
+            [
+                'SVC-006',
+                'Integrasi API & Middleware',
+                'Perkhidmatan integrasi sistem melalui REST API / SOAP / middleware',
+                'service', 0.00, 0.00, 'Projek',
+                true, 8.0, false, 0, 0,
+                '4120', '5110', 'Perkhidmatan IT',
+            ],
+            [
+                'SVC-007',
+                'Pengehosan & Domain (Tahunan)',
+                'Pengehosan web hosting + pendaftaran domain .com.my (1 tahun)',
+                'service', 600.00, 180.00, 'Tahun',
+                false, 0.0, false, 0, 0,
+                '4120', '5110', 'Infrastruktur',
+            ],
+            [
+                'SVC-008',
+                'Perundingan Migrasi Cloud',
+                'Perancangan dan pelaksanaan migrasi infrastruktur ke awan (AWS/Azure)',
+                'service', 0.00, 0.00, 'Projek',
+                true, 8.0, false, 0, 0,
+                '4120', '5110', 'Cloud & Infrastruktur',
+            ],
+
+            // ── PRODUCTS ─────────────────────────────────────────────
+            [
+                'PRD-001',
+                'Laptop Dell Latitude 5540',
+                'Laptop perniagaan Dell Latitude 5540 — Intel Core i5, 16GB RAM, 512GB SSD',
+                'product', 6500.00, 5200.00, 'Unit',
+                true, 8.0, true, 8, 3,
+                '4110', '5110', 'Perkakasan IT',
+            ],
+            [
+                'PRD-002',
+                'Laptop Dell Precision 3680',
+                'Workstation mudah alih Dell Precision — Intel Core i7, 32GB RAM, 1TB SSD',
+                'product', 10500.00, 8800.00, 'Unit',
+                true, 8.0, true, 4, 2,
+                '4110', '5110', 'Perkakasan IT',
+            ],
+            [
+                'PRD-003',
+                'Switch Rangkaian Cisco SG350-28 (28-port)',
+                'Managed switch Cisco SG350-28 untuk rangkaian pejabat',
+                'product', 3800.00, 2900.00, 'Unit',
+                true, 8.0, true, 5, 2,
+                '4110', '5110', 'Rangkaian',
+            ],
+            [
+                'PRD-004',
+                'Firewall Fortinet FortiGate 60F',
+                'Firewall perimeter Fortinet FortiGate 60F dengan lesen 1 tahun',
+                'product', 5500.00, 4200.00, 'Unit',
+                true, 8.0, true, 3, 1,
+                '4110', '5110', 'Keselamatan Siber',
+            ],
+            [
+                'PRD-005',
+                'Microsoft 365 Business Standard (1 Lesen/Tahun)',
+                'Lesen Microsoft 365 Business Standard — Teams, Word, Excel, Outlook, 1TB OneDrive',
+                'product', 220.00, 165.00, 'Lesen',
+                true, 8.0, false, 0, 0,
+                '4120', '5110', 'Perisian',
+            ],
+            [
+                'PRD-006',
+                'Antivirus Kaspersky Endpoint (1 Nod/Tahun)',
+                'Lesen Kaspersky Endpoint Security Cloud — 1 peranti/tahun',
+                'product', 85.00, 55.00, 'Lesen',
+                true, 8.0, false, 0, 0,
+                '4120', '5110', 'Keselamatan Siber',
+            ],
+            [
+                'PRD-007',
+                'Kit IoT Raspberry Pi 4 (4GB)',
+                'Kit pembangunan IoT — Raspberry Pi 4 Model B 4GB + casing + power supply',
+                'product', 420.00, 280.00, 'Unit',
+                false, 0.0, true, 15, 5,
+                '4110', '5110', 'Perkakasan IT',
+            ],
+            [
+                'PRD-008',
+                'UPS APC Back-UPS 1500VA',
+                'Uninterruptible Power Supply APC Back-UPS 1500VA untuk server/workstation',
+                'product', 680.00, 480.00, 'Unit',
+                true, 8.0, true, 6, 2,
+                '4110', '5110', 'Perkakasan IT',
+            ],
+            [
+                'PRD-009',
+                'Kabel Rangkaian CAT6 (305m/roll)',
+                'Kabel UTP CAT6 305 meter/gulung — untuk pemasangan LAN',
+                'product', 280.00, 180.00, 'Gulung',
+                true, 8.0, true, 10, 3,
+                '4110', '5110', 'Rangkaian',
+            ],
+            [
+                'PRD-010',
+                'NAS Synology DS923+ (4-Bay)',
+                'Network Attached Storage Synology DS923+ 4-bay untuk backup dan storan fail',
+                'product', 3200.00, 2400.00, 'Unit',
+                true, 8.0, true, 3, 1,
+                '4110', '5110', 'Perkakasan IT',
+            ],
+
+            // ── BUNDLES ──────────────────────────────────────────────
+            [
+                'BDL-001',
+                'Pakej Starter IT SME',
+                'Pakej lengkap SME: Laptop Dell × 3 + Switch Cisco + Firewall FortiGate + Setup & Konfigurasi',
+                'bundle', 28500.00, 21000.00, 'Pakej',
+                true, 8.0, false, 0, 0,
+                '4110', '5110', 'Pakej & Bundle',
+            ],
+            [
+                'BDL-002',
+                'Pakej Keselamatan Siber Pro',
+                'Audit keselamatan + Penetration Testing + Antivirus 10 lesen + Laporan terperinci',
+                'bundle', 18000.00, 0.00, 'Pakej',
+                true, 8.0, false, 0, 0,
+                '4120', '5110', 'Pakej & Bundle',
+            ],
+            [
+                'BDL-003',
+                'Pakej Pembangunan & Penyelenggaraan Web',
+                'Pembangunan laman web syarikat + Pengehosan 1 tahun + Sokongan 12 bulan',
+                'bundle', 12000.00, 0.00, 'Pakej',
+                true, 8.0, false, 0, 0,
+                '4120', '5110', 'Pakej & Bundle',
+            ],
+        ];
+
+        $count = 0;
+        foreach ($items as [
+            $code, $name, $desc, $type, $selling, $cost, $uom,
+            $sst, $sstRate, $trackStock, $stock, $reorder,
+            $incomeCode, $expenseCode, $category,
+        ]) {
+            DB::table('items')->insert([
+                'company_id'         => $this->companyId,
+                'code'               => $code,
+                'name'               => $name,
+                'description'        => $desc,
+                'type'               => $type,
+                'selling_price'      => $selling,
+                'cost_price'         => $cost,
+                'unit_of_measure'    => $uom,
+                'is_sst_applicable'  => $sst,
+                'sst_rate'           => $sstRate,
+                'track_inventory'    => $trackStock,
+                'current_stock'      => $stock,
+                'reorder_level'      => $reorder,
+                'income_account_id'  => $this->acct($incomeCode),
+                'expense_account_id' => $this->acct($expenseCode),
+                'category'           => $category,
+                'is_active'          => true,
+                'created_at'         => now(), 'updated_at' => now(),
+            ]);
+            $count++;
+        }
+
+        $this->command->info("   ↳ Items catalog: {$count} item (8 perkhidmatan, 10 produk, 3 bundle).");
+    }
+
+
+
+    // ════════════════════════════════════════════════════════════════
     // 6. EMPLOYEES
     // ════════════════════════════════════════════════════════════════
     private function seedEmployees(): void
@@ -595,6 +1051,35 @@ class DemoDataSeeder extends Seeder
                 'created_at'      => now(), 'updated_at' => now(),
             ]);
         }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // PAYROLL GL MAPPINGS
+    // ════════════════════════════════════════════════════════════════
+    private function seedPayrollGlMappings(): void
+    {
+        $mappings = [
+            // component                    => COA code
+            'SALARY_EXPENSE'                => '5210', // Salaries & Wages
+            'EMPLOYER_CONTRIBUTION_EXPENSE' => '5220', // EPF – Employer Contribution
+            'KWSP_PAYABLE'                  => '2140', // EPF Payable
+            'SOCSO_PAYABLE'                 => '2150', // SOCSO Payable
+            'EIS_PAYABLE'                   => '2170', // EIS Payable
+            'PCB_PAYABLE'                   => '2160', // PCB (Income Tax) Payable
+            'NET_SALARY_PAYABLE'            => '2120', // Other Payables & Accruals
+        ];
+
+        DB::table('payroll_gl_mappings')->where('company_id', $this->companyId)->delete();
+
+        foreach ($mappings as $component => $code) {
+            DB::table('payroll_gl_mappings')->insert([
+                'company_id'  => $this->companyId,
+                'component'   => $component,
+                'account_id'  => $this->acct($code),
+                'created_at'  => now(), 'updated_at' => now(),
+            ]);
+        }
+        $this->command->info('   ↳ Payroll GL mappings: ' . count($mappings) . ' components.');
     }
 
     // ════════════════════════════════════════════════════════════════
