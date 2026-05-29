@@ -73,6 +73,7 @@ class DemoDataSeeder extends Seeder
         $this->loadAccounts();
         $this->resolveCompany();
         $this->seedAccountingPeriods();
+        $this->seedOpeningBalance();
         $this->seedCustomers();
         $this->seedVendors();
         $this->seedInvoices();
@@ -167,6 +168,78 @@ class DemoDataSeeder extends Seeder
                 'created_at' => now(), 'updated_at' => now(),
             ]);
         }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // OPENING BALANCE — 1 January 2025
+    // DR = CR = 358,150.00  (balanced)
+    // ════════════════════════════════════════════════════════════════
+    private function seedOpeningBalance(): void
+    {
+        $adminId = DB::table('users')->where('company_id', $this->companyId)->value('id') ?? 1;
+        $period  = $this->periods['2025-01'] ?? null;
+
+        $jId = DB::table('journal_headers')->insertGetId([
+            'company_id'             => $this->companyId,
+            'period_id'              => $period,
+            'reference_no'           => 'OB-2025-001',
+            'date'                   => '2025-01-01',
+            'status'                 => 'posted',
+            'source_type'            => 'manual',
+            'summary_text'           => 'Opening Balance — 1 January 2025',
+            'exchange_rate'          => 1.0,
+            'original_currency_code' => 'MYR',
+            'created_by'             => $adminId,
+            'posted_by'              => $adminId,
+            'posted_at'              => now(),
+            'created_at'             => now(), 'updated_at' => now(),
+        ]);
+
+        $lines = [
+            // ── DEBIT lines ─────────────────────────────────────────
+            ['1110', 'Cash at Bank — Opening Balance',               85000.00, 0],
+            ['1120', 'Petty Cash — Opening Balance',                   500.00, 0],
+            ['1130', 'Trade Receivables — Opening Balance',          42000.00, 0],
+            ['1150', 'Inventory — Opening Balance',                  18500.00, 0],
+            ['1160', 'Prepaid Expenses — Opening Balance',            3600.00, 0],
+            ['1210', 'Plant & Equipment — Opening Balance',         118600.00, 0],
+            ['1220', 'Motor Vehicles — Opening Balance',            170000.00, 0],
+            ['1230', 'Office Equipment — Opening Balance',            8500.00, 0],
+            ['1240', 'Furniture & Fittings — Opening Balance',       34800.00, 0],
+            ['1310', 'Security Deposits — Opening Balance',           5400.00, 0],
+            // ── CREDIT lines ────────────────────────────────────────
+            ['1250', 'Accum. Depreciation – Plant — OB',                   0, 29650.00],
+            ['1260', 'Accum. Depreciation – Vehicles — OB',                0, 51200.00],
+            ['1270', 'Accum. Depreciation – Office Equip — OB',            0,  1700.00],
+            ['1280', 'Accum. Depreciation – Furniture — OB',               0,  4350.00],
+            ['2110', 'Trade Payables — Opening Balance',                    0, 28600.00],
+            ['2120', 'Other Payables & Accruals — Opening Balance',         0, 12400.00],
+            ['2180', 'Short-term Borrowings — Opening Balance',             0, 35000.00],
+            ['2210', 'Long-term Borrowings — Opening Balance',              0, 95000.00],
+            ['3110', 'Paid-up Capital — Opening Balance',                   0,100000.00],
+            ['3120', 'Retained Earnings — Opening Balance',                 0,129000.00],
+        ];
+
+        $totalDr = $totalCr = 0;
+        foreach ($lines as [$code, $desc, $dr, $cr]) {
+            $acctId = $this->acct($code);
+            if (!$acctId) continue;
+
+            DB::table('journal_lines')->insert([
+                'journal_header_id' => $jId,
+                'account_id'        => $acctId,
+                'debit'             => $dr,
+                'credit'            => $cr,
+                'description'       => $desc,
+                'created_at'        => now(), 'updated_at' => now(),
+            ]);
+
+            $totalDr += $dr;
+            $totalCr += $cr;
+        }
+
+        $balanced = $totalDr === $totalCr ? '✅ BALANCED' : '❌ OUT BY ' . abs($totalDr - $totalCr);
+        $this->command->info("   ↳ Opening Balance: DR={$totalDr} CR={$totalCr} — {$balanced}");
     }
 
     // ════════════════════════════════════════════════════════════════
