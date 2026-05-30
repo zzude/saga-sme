@@ -12,10 +12,8 @@ class CreateQuotation extends CreateRecord
     protected static string $resource = QuotationResource::class;
 
     /**
-     * Provide a concrete model instance instead of a class string so that
-     * Filament's getModelInstance() never falls through to app($classString).
-     * On CREATE, defaultForm() passes the class string, which causes the
-     * container to fire resolution callbacks in a recursive spiral.
+     * Provide a concrete model instance so Filament's getModelInstance()
+     * never falls through to app($classString) — prevents memory exhaustion.
      */
     public function defaultForm(Schema $schema): Schema
     {
@@ -25,6 +23,7 @@ class CreateQuotation extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $generated = Quotation::generateQuotationNumber(0);
+
         $data['quotation_number']   = $generated['number'];
         $data['quotation_ref']      = $generated['ref'];
         $data['revision']           = 0;
@@ -32,23 +31,24 @@ class CreateQuotation extends CreateRecord
         $data['company_id']         = auth()->user()->company_id;
         $data['created_by']         = auth()->id();
         $data['status']             = 'draft';
+
+        // Strip items — handled by relationship repeater, not here
+        //unset($data['items']);
+
         return $data;
     }
 
     protected function afterCreate(): void
     {
-        // Fix company_id on all items
-        $this->record->items()->update([
-            'company_id' => $this->record->company_id,
-        ]);
-
-        // Re-number lines
+        // Repeater with ->relationship('items') + mutateRelationshipDataBeforeCreateUsing
+        // already saved items with line_no = 0.
+        // Re-number them properly here.
         $lineNo = 1;
         foreach ($this->record->items()->orderBy('id')->get() as $item) {
             $item->update(['line_no' => $lineNo++]);
         }
 
-        // Recalculate totals
+        // Recalculate header totals from saved items
         $this->record->recalculateTotals();
     }
 
